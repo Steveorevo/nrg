@@ -1,0 +1,12 @@
+{
+    "name": "nrg",
+    "description": "A web server \"wired\" in Node-RED that serves dynamic & static content.",
+    "version": "0.0.1",
+    "dependencies": {},
+    "node-red": {
+        "settings": {
+            "flowFile": "nrg.json",
+            "credentialsFile": "nrg_cred.json"
+        }
+    }
+}
