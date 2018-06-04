@@ -1,15 +1,18 @@
 {
-    "name": "nrg",
-    "description": "A web server \"wired\" in Node-RED that serves dynamic & static content.",
-    "version": "0.0.1",
-    "dependencies": {
-        "node-red-contrib-actionflows": "1.1.0",
-        "node-red-contrib-string": "0.2.1"
+  "name": "nrg",
+  "description": "A web server \"wired\" in Node-RED that serves dynamic & static content.",
+  "version": "0.0.1",
+  "dependencies": {
+    "node-red-contrib-actionflows": "^1.1.0",
+    "node-red-contrib-string": "^0.2.1"
+  },
+  "node-red": {
+    "settings": {
+      "flowFile": "nrg.json",
+      "credentialsFile": "nrg_cred.json"
     },
-    "node-red": {
-        "settings": {
-            "flowFile": "nrg.json",
-            "credentialsFile": "nrg_cred.json"
-        }
+    "nodes": {
+      "nrg": "manifest.js"
     }
+  }
 }
