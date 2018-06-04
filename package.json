@@ -4,7 +4,8 @@
   "version": "0.0.1",
   "dependencies": {
     "node-red-contrib-actionflows": "^1.1.0",
-    "node-red-contrib-string": "^0.2.1"
+    "node-red-contrib-string": "^0.2.1",
+    "node-red-contrib-subprojects": "steveorevo/node-red-contrib-subprojects"
   },
   "node-red": {
     "settings": {
