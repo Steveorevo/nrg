@@ -4,16 +4,12 @@
   "version": "0.0.1",
   "dependencies": {
     "node-red-contrib-actionflows": "^2.0.0",
-    "node-red-contrib-string": "^0.2.1",
-    "node-red-contrib-subprojects": "steveorevo/node-red-contrib-subprojects"
+    "node-red-contrib-string": "^0.2.1"
   },
   "node-red": {
     "settings": {
-      "flowFile": "nrg.json",
-      "credentialsFile": "nrg_cred.json"
-    },
-    "nodes": {
-      "nrg": "manifest.js"
+      "flowFile": "flow.json",
+      "credentialsFile": "flow_cred.json"
     }
   }
 }
