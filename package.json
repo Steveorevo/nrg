@@ -1,15 +1,15 @@
 {
-  "name": "nrg",
-  "description": "A web server \"wired\" in Node-RED that serves dynamic & static content.",
-  "version": "0.0.1",
-  "dependencies": {
-    "node-red-contrib-actionflows": "^2.0.0",
-    "node-red-contrib-string": "^0.2.1"
-  },
-  "node-red": {
-    "settings": {
-      "flowFile": "flow.json",
-      "credentialsFile": "flow_cred.json"
+    "name": "nrg",
+    "description": "A web server \"wired\" in Node-RED that serves dynamic & static content.",
+    "version": "0.0.1",
+    "dependencies": {
+        "node-red-contrib-actionflows": "^2.0.0",
+        "node-red-contrib-string": "^0.2.1"
+    },
+    "node-red": {
+        "settings": {
+            "flowFile": "flow.json",
+            "credentialsFile": "flow_cred.json"
+        }
     }
-  }
 }
