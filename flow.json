@@ -10,7 +10,7 @@
         "id": "2b744329.f2992c",
         "type": "subflow",
         "name": "nrg",
-        "info": "nrg\n===\n\nA web server \"wired\" in Node-RED that serves dynamic & static content.\n#### *Note: this is a functional work in progress!!!*\n\n### About\nNRG is an open source web server \"wired\" completely in Node-RED. It is capable\nof serving static as well as dynamic web pages. It is designed to leverage the\ncapabilities of Node-RED flows with inline, special server-side tags embedded\ninto regular web pages. The web sever delivers standard HTML, CSS, most Apache\n2.0 mime-types, and the special .nrg (dot n-r-g, i.e. index.nrg) files. The .nrg\nfiles act as \"Node-RED gateway\" files like cgi files; but more similar to the\npopular and prolific ASP and PHP files used by most hosting providers.\n\nNRG accommodates MVC-like design patterns, splitting form & function, allowing web designers\nto focus on user interface, theme design, stylesheets, and accessibility; while\npreserving the web developer's power to use Node-RED driven logic, data,\nconductivity, and functionality.\n\n### Getting Started\nTo startup NRG simply drag the “nrg” subflow to a tab in the Node-RED editor and\nclick “Deploy”. Currently, NRG is implemented as a global singleton object and\nonly one instance of the web server should exist. However, flows that service\nbrowser requests may exist on any tab. By default, NRG will serve files from the\na subfolder titled “public_html” from the current user account (I.e.\n/Users/username/public_html). You may change the default configuration by\ndefining an [ActionFlows](https://flows.nodered.org/node/node-red-contrib-actionflows) segment and naming it \"#config\". Also by default (and\ncustomizable), the URL path is the same as the Node-RED installation. More\ninformation can be found in the followup section \"Creating NRG Flows\" below. Lastly, you\ncan change the admin path for Node-RED via your [Node-RED’s settings.js file](https://nodered.org/docs/configuration).\n\n### Creating NRG Flows\nAt the heart of NRG’s operation are \"NRG flows\" which are simply Node-RED\ncontributed nodes called [ActionFlows](https://flows.nodered.org/node/node-red-contrib-actionflows); a set of nodes that allow you\nto define a flow segment. ActonFlows are similar to “virtual wires” and\nNode-RED’s native Subflows. Two important nodes you will use to define an NRG\nflow segment are:\n\n* action in\n* action out\n\nFor example, to configure a different web server folder in lieu of the default\n(/Users/username/public_html), create an action in/out pair of nodes named\n`#config` and use a change node to alter the siteRoot property of the\n`msg.payload`. The flow segment you defined will be executed immediately after\nyou deploy; telling NRG web server where to begin serving files (see image\nbelow).\n\n![Configure NRG](https://raw.githubusercontent.com/Steveorevo/nrg/master/demo/nrg-config.jpg)\n\nThe image above shows the flow segment `#config` with the default settings in\n`msg.payload`. A definition for each of the settings are:\n\n* slash - Platform dependent directory separator. Do not change this.\n* mimeTypes - The default Content-Type/mime types set by extension.\n* siteRoot - The site root folder used to deliver content by the server.\n* urlPath - The starting URL path used to deliver content by the server.\n\nIn addition to the #config flow segment are NRG flows for customizing the 404\nPage Not Found error page, and the 403, and 500 pages. You can supply your own\ncustom error pages by supplying your own NRG flows named:\n\n* 403error\n* 404error\n* 500error\n\nYou may also invoke NRG flows from within your own webpages by simply naming the\nfile with a .nrg (dot n-r-g) extension (i.e. index.nrg) and using NRG tags. See\n\"NRG Flows in Webpages\" below for details.\n\n### NRG Flows in Webpages\nCreating dynamic web pages with NRG flows is easy; simply create an XHTML\ncompliant file named with a .nrg extension (aka \"NRG files\"). NRG files are just\nlike HTML files, but they can include both HTML tags and special \"NRG tags\".\nThe NRG tags contain the name of flow segments (ActionFlows) that are executed\nby Node-RED when the page is accessed. The resulting output is written as\nHTML within the webpage. When a user accesses a NRG page, his or her web browser\nonly gets sent the HTML code, since Node-RED has run the NRG flows in the\nbackground. A simple \"Hello World\" web page can illustrate the process:\n\n```\n<html>\n  <body>\n    <#action/>\n  </body>\n</html>\n```\n\nThe NRG flow self-closing tag `<#action/>` will run the associated flow segment\nof the same named prefix `action` in Node-RED.\n\n![NRG Flow Segment](https://raw.githubusercontent.com/Steveorevo/nrg/master/demo/nrg-hello-world.jpg)\n\nThe results of the flow segment's `msg.payload` property will be output and will\nreplace the tag. In this case, the change node will populate `msg.payload` with\nthe string \"Hello World\". The result is a simple white webpage with the text\n\"Hello World\".\n\n#### Tag Syntax for NRG Flows\nAuthors of .nrg webpages should ensure that their pages are XHTML compliant. NRG\nwill run a basic XML syntax check and report any errors for broken tags or\nincorrect syntax. The special NRG flow tags follow a strict XHTML standard;\ninternally the # (hashtag) is a shortcut that converts to `nrg_` (i.e.\n`<#action />` is the equivalent to `<nrg_action />`. The shortcut # (hashtag) is\nthe preferred method for embedding server side flows into webpages.\n\nAs shown in the example, the contents of the `msg.payload` at the end of the\nflow is returned in place of the tag in the webpage. Likewise, a tag can pass\na value into a flow as the initial content of `msg.payload`. The examples above\nfor `<#action />` pass nothing and therefore always have an empty payload.\nHowever, consider that an XML compliant self-closing tag of\n`<nrg_action payload=\"The quick brown fox\" />` would invoke the `action` node in Node-RED with a\n`msg.payload` containing \"The quick brown fox\". In the preferred shortcut syntax:\n\n```\n<#action(\"The quick brown fox\"); />\n```\n\n#### Passing Template Blocks\nOften times, a web designer may wish to send a block of HTML to Node-RED for\nprocessing or to inject dynamic content into mustache syntax template; such as\nwith the [node-red-contrib-render](https://flows.nodered.org/node/node-red-contrib-render)\nnode. In this case, use a XHTML begin and end tag (versus self-closing):\n\n```\n<#comments>\n  <div class=\"comment\">\n    <span class=\"comment-user\">Visitor {{username}} says:</span>\n    <div class=\"comment-post\">\n      <p>{{comment}}</p>\n    </div>\n    <span class=\"comment-date\">{{comment-date}}</span>\n  </div>\n</#comments>\n```\n\n\nUsing the beginning and ending tag syntax will capture a code block of HTML that\nappears between the tags. The captured content will replace the `msg.payload`\nproperty and will be sent to the `action in` node flow segment. I.e.:\n\nUsing the beginning and ending syntax (`<#comments>` and `</#comments>`) above\nwill capture a code block of HTML that appears between the tags. The code block\nis provided in the value of the `msg.payload` context property when the Node-RED\nflow segment is invoked. In the above example the Node-RED flow segment\n(defined using [ActionFlows](https://flows.nodered.org/node/node-red-contrib-actionflows)) named `comments` is invoked.\n\n### Server-side Scripting\nNRG flows reserves a few names for special purposes; the `<#script>` tag is of\nspecial importance. When authored with beginning and ending tags, the contents\ninterpreted as server-side JavaScript; as if they were written inside a native\nNode-RED function node. This means that your **must** do a `return msg` or\ninvoke the `node.send(msg);` method to pass along the msg object. Remember, the\ncontent of the `msg.payload` will be appended to the `msg.outputBuffer` property\nwhich is the current output that will sent to the client's web browser. Consider\nthe following code block:\n\n```\n<#script>\nmsg.payload = \"The quick brown fox\";\nnode.warn(\"jumps over the lazy dog\");\nreturn msg;\n</#script>\n```\n\nThe special `#script` is a reserved name and you should not attempt to create a\nflow segment with the same name. The above code will instead execute immediately\nand append \"The quick brown fox\" to `msg.outputBuffer` and subsequently the web\nbrowser; followed by sending \"jumps over the lazy dog\" to Node-RED's debug window.\n\nIn lieu of inline code block, you can supply a filename using the self-closing\ntag syntax:\n\n```\n<#script(\"example.jss\"); />\n```\n\nNote the .jss (dot j-s-s) filename extension (as in \"JavaScript Server-side\").\nThis is the preferred filename extension as it is protected from transmission\nby the NRG web server to the web browser. Attempts to load the page by a web\nbrowser will be returned a 403 Forbidden error page.\n\n### NRG Directives\nAs mentioned above, there are a few reserved NRG tag names that are used for\nspecific purposed and should not be used as for flows:\n\n* `#script` is used for server-side JavaScript, similar to a function node.\n* `#include` is used to include one file content into another. Similar to PHP's include function. Care should be taken to ensure that the included file does not break XHTML beginning and ending tags to ensure proper parsing.\n* `#require` (pending) is used at the top of a .nrg file to dynamically deploy a .flow file before executing a .nrg file.\n\n### TODO: incomplete list of items\nThe following are not implemented yet (but have a good chance that they will be):\n\n* Support objects to be merged into `msg` context i.e.\n\n```\n<#action({payload:\"Hello World\",something:\"else\"}); />\n```\n\n* Implement `<#require(\"something.flow\"); />` dynamically loads a json flow the tab titled \"something\" (if it does not already exist) before processing the remainder of the .nrg file. This will facilitate code distribution.\n* Implement `<#prefix />` tag to enabled prefix naming actionflows.\n* Implement a session context? Should include destroy session and the ability to set an expiration time.\n* Optimize, optimize, optimize. While it's neat that it's a subflow completely \"wired\" in Node-RED, consider re-authoring as an actual node.\n",
+        "info": "nrg\n===\n\nA web server \"wired\" in Node-RED that serves dynamic & static content.\n#### *Note: this is a functional work in progress!!!*\n\n### About\nNRG is an open source web server \"wired\" completely in Node-RED. It is capable\nof serving static as well as dynamic web pages. It is designed to leverage the\ncapabilities of Node-RED flows with inline, special server-side tags embedded\ninto regular web pages. The web sever delivers standard HTML, CSS, most Apache\n2.0 mime-types, and the special .nrg (dot n-r-g, i.e. index.nrg) files. The .nrg\nfiles act as \"Node-RED gateway\" files like cgi files; but more similar to the\npopular and prolific ASP and PHP files used by most hosting providers.\n\nNRG accommodates MVC-like design patterns, splitting form & function, allowing web designers\nto focus on user interface, theme design, stylesheets, and accessibility; while\npreserving the web developer's power to use Node-RED driven logic, data,\nconductivity, and functionality.\n\n### Getting Started\nTo startup NRG simply drag the “nrg” subflow to a tab in the Node-RED editor and\nclick “Deploy”. Currently, NRG is implemented as a global singleton object and\nonly one instance of the web server should exist. However, flows that service\nbrowser requests may exist on any tab. By default, NRG will serve files from the\na subfolder titled “public_html” from the current user account (I.e.\n/Users/username/public_html). You may change the default configuration by\ndefining an [ActionFlows](https://flows.nodered.org/node/node-red-contrib-actionflows) segment and naming it \"#config\". Also by default (and\ncustomizable), the URL path is the same as the Node-RED installation. More\ninformation can be found in the followup section \"Creating NRG Flows\" below. Lastly, you\ncan change the admin path for Node-RED via your [Node-RED’s settings.js file](https://nodered.org/docs/configuration).\n\n### Creating NRG Flows\nAt the heart of NRG’s operation are \"NRG flows\" which are simply Node-RED\ncontributed nodes called [ActionFlows](https://flows.nodered.org/node/node-red-contrib-actionflows); a set of nodes that allow you\nto define a flow segment. ActonFlows are similar to “virtual wires” and\nNode-RED’s native Subflows. Two important nodes you will use to define an NRG\nflow segment are:\n\n* action in\n* action out\n\nFor example, to configure a different web server folder in lieu of the default\n(/Users/username/public_html), create an action in/out pair of nodes named\n`#config` and use a change node to alter the siteRoot property of the\n`msg.payload`. The flow segment you defined will be executed immediately after\nyou deploy; telling NRG web server where to begin serving files (see image\nbelow).\n\n![Configure NRG](https://raw.githubusercontent.com/Steveorevo/nrg/master/demo/nrg-config.jpg)\n\nThe image above shows the flow segment `#config` with the default settings in\n`msg.payload`. A definition for each of the settings are:\n\n* slash - Platform dependent directory separator. Do not change this.\n* mimeTypes - The default Content-Type/mime types set by extension.\n* siteRoot - The site root folder used to deliver content by the server.\n* urlPath - The starting URL path used to deliver content by the server.\n\nIn addition to the #config flow segment are NRG flows for customizing the 404\nPage Not Found error page, and the 403, and 500 pages. You can supply your own\ncustom error pages by supplying your own NRG flows named:\n\n* 403error\n* 404error\n* 500error\n\nYou may also invoke NRG flows from within your own webpages by simply naming the\nfile with a .nrg (dot n-r-g) extension (i.e. index.nrg) and using NRG tags. See\n\"NRG Flows in Webpages\" below for details.\n\n### NRG Flows in Webpages\nCreating dynamic web pages with NRG flows is easy; simply create an XHTML\ncompliant file named with a .nrg extension (aka \"NRG files\"). NRG files are just\nlike HTML files, but they can include both HTML tags and special \"NRG tags\".\nThe NRG tags contain the name of flow segments (ActionFlows) that are executed\nby Node-RED when the page is accessed. The resulting output is written as\nHTML within the webpage. When a user accesses a NRG page, his or her web browser\nonly gets sent the HTML code, since Node-RED has run the NRG flows in the\nbackground. A simple \"Hello World\" web page can illustrate the process:\n\n```\n<html>\n  <body>\n    <#action/>\n  </body>\n</html>\n```\n\nThe NRG flow self-closing tag `<#action/>` will run the associated flow segment\nof the same named prefix `action` in Node-RED.\n\n![NRG Flow Segment](https://raw.githubusercontent.com/Steveorevo/nrg/master/demo/nrg-hello-world.jpg)\n\nThe results of the flow segment's `msg.payload` property will be output and will\nreplace the tag. In this case, the change node will populate `msg.payload` with\nthe string \"Hello World\". The result is a simple white webpage with the text\n\"Hello World\".\n\n#### Tag Syntax for NRG Flows\nAuthors of .nrg webpages should ensure that their pages are XHTML compliant. NRG\nwill run a basic XML syntax check and report any errors for broken tags or\nincorrect syntax. The special NRG flow tags follow a strict XHTML standard;\ninternally the # (hashtag) is a shortcut that converts to `nrg_` (i.e.\n`<#action />` is the equivalent to `<nrg_action />`. The shortcut # (hashtag) is\nthe preferred method for embedding server side flows into webpages.\n\nAs shown in the example, the contents of the `msg.payload` at the end of the\nflow is returned in place of the tag in the webpage. Likewise, a tag can pass\na value into a flow as the initial content of `msg.payload`. The examples above\nfor `<#action />` pass nothing and therefore always have an empty payload.\nHowever, consider that an XML compliant self-closing tag of\n`<nrg_action payload=\"The quick brown fox\" />` would invoke the `action` node in Node-RED with a\n`msg.payload` containing \"The quick brown fox\". In the preferred shortcut syntax:\n\n```\n<#action(\"The quick brown fox\"); />\n```\n\n#### Passing Template Blocks\nOften times, a web designer may wish to send a block of HTML to Node-RED for\nprocessing or to inject dynamic content into mustache syntax template; such as\nwith the [node-red-contrib-render](https://flows.nodered.org/node/node-red-contrib-render)\nnode. In this case, use a XHTML begin and end tag (versus self-closing):\n\n```\n<#comments>\n  <div class=\"comment\">\n    <span class=\"comment-user\">Visitor {{username}} says:</span>\n    <div class=\"comment-post\">\n      <p>{{comment}}</p>\n    </div>\n    <span class=\"comment-date\">{{comment-date}}</span>\n  </div>\n</#comments>\n```\n\n\nUsing the beginning and ending tag syntax will capture a code block of HTML that\nappears between the tags. The captured content will replace the `msg.payload`\nproperty and will be sent to the `action in` node flow segment. I.e.:\n\nUsing the beginning and ending syntax (`<#comments>` and `</#comments>`) above\nwill capture a code block of HTML that appears between the tags. The code block\nis provided in the value of the `msg.payload` context property when the Node-RED\nflow segment is invoked. In the above example the Node-RED flow segment\n(defined using [ActionFlows](https://flows.nodered.org/node/node-red-contrib-actionflows)) named `comments` is invoked.\n\n### Server-side Scripting\nNRG flows reserves a few names for special purposes; the `<#script>` tag is of\nspecial importance. When authored with beginning and ending tags, the contents\ninterpreted as server-side JavaScript; as if they were written inside a native\nNode-RED function node. This means that your **must** do a `return msg` or\ninvoke the `node.send(msg);` method to pass along the msg object. Remember, the\ncontent of the `msg.payload` will be appended to the `msg.outputBuffer` property\nwhich is the current output that will be sent to the client's web browser.\nConsider the following code block:\n\n```\n<#script>\nmsg.payload = \"The quick brown fox\";\nnode.warn(\"jumps over the lazy dog\");\nreturn msg;\n</#script>\n```\n\nThe special `#script` is a reserved name and you should not attempt to create a\nflow segment with the same name. The above code will instead execute immediately\nand append \"The quick brown fox\" to `msg.outputBuffer` and subsequently the web\nbrowser; followed by sending \"jumps over the lazy dog\" to Node-RED's debug window.\n\nIn lieu of inline code block, you can supply a filename using the self-closing\ntag syntax:\n\n```\n<#script(\"example.jss\"); />\n```\n\nNote the .jss (dot j-s-s) filename extension (as in \"JavaScript Server-side\").\nThis is the preferred filename extension as it is protected from transmission\nby the NRG web server to the web browser. Attempts to load the page by a web\nbrowser will be returned a 403 Forbidden error page.\n\n### NRG Directives\nAs mentioned above, there are a few reserved NRG tag names that are used for\nspecific purposed and should not be used as for flows:\n\n* `#script` is used for server-side JavaScript, similar to a function node.\n* `#include` is used to include one file content into another. Similar to PHP's include function. Care should be taken to ensure that the included file does not break XHTML beginning and ending tags to ensure proper parsing.\n* `#require` (pending) is used at the top of a .nrg file to dynamically deploy a .flow file before executing a .nrg file.\n\n### TODO: incomplete list of items\nThe following are not implemented yet (but have a good chance that they will be):\n\n* Support objects to be merged into `msg` context i.e.\n\n```\n<#action({payload:\"Hello World\",something:\"else\"}); />\n```\n\n* Implement `<#require(\"something.flow\"); />` dynamically loads a json flow the tab titled \"something\" (if it does not already exist) before processing the remainder of the .nrg file. This will facilitate code distribution.\n* Implement `<#prefix />` tag to enabled prefix naming actionflows.\n* Implement a session context? Should include destroy session and the ability to set an expiration time.\n* Optimize, optimize, optimize. While it's neat that it's a subflow completely \"wired\" in Node-RED, consider re-authoring as an actual node.\n",
         "category": "",
         "in": [],
         "out": []
@@ -77,1057 +77,6 @@
                 "bf0f6732.4f65c8"
             ]
         ]
-    },
-    {
-        "id": "cb54116b.2d9288",
-        "type": "comment",
-        "z": "2b744329.f2992c",
-        "name": "Determine default siteRoot via cross-platform flow",
-        "info": "",
-        "x": 1050,
-        "y": 80,
-        "wires": []
-    },
-    {
-        "id": "cf1f8037.d87e28",
-        "type": "exec",
-        "z": "2b744329.f2992c",
-        "command": "",
-        "addpay": true,
-        "append": "",
-        "useSpawn": "false",
-        "timer": "",
-        "oldrc": false,
-        "name": "",
-        "x": 910,
-        "y": 240,
-        "wires": [
-            [
-                "7742bf05.34f73"
-            ],
-            [],
-            []
-        ]
-    },
-    {
-        "id": "7742bf05.34f73",
-        "type": "switch",
-        "z": "2b744329.f2992c",
-        "name": "",
-        "property": "payload",
-        "propertyType": "msg",
-        "rules": [
-            {
-                "t": "cont",
-                "v": "$HOME",
-                "vt": "str"
-            },
-            {
-                "t": "else"
-            }
-        ],
-        "checkall": "true",
-        "outputs": 2,
-        "x": 910,
-        "y": 300,
-        "wires": [
-            [
-                "afd46d31.3ddd8"
-            ],
-            [
-                "d7f80c95.b3fc1"
-            ]
-        ]
-    },
-    {
-        "id": "d7f80c95.b3fc1",
-        "type": "string",
-        "z": "2b744329.f2992c",
-        "name": "/public_html",
-        "methods": [
-            {
-                "name": "trim",
-                "params": []
-            },
-            {
-                "name": "append",
-                "params": [
-                    {
-                        "type": "str",
-                        "value": "/public_html"
-                    }
-                ]
-            }
-        ],
-        "prop": "payload",
-        "propout": "payload",
-        "object": "msg",
-        "objectout": "msg",
-        "x": 930,
-        "y": 360,
-        "wires": [
-            [
-                "6bc39059.bfb35"
-            ]
-        ]
-    },
-    {
-        "id": "24758867.92456",
-        "type": "string",
-        "z": "2b744329.f2992c",
-        "name": "\\public_html",
-        "methods": [
-            {
-                "name": "trim",
-                "params": []
-            },
-            {
-                "name": "append",
-                "params": [
-                    {
-                        "type": "str",
-                        "value": "\\public_html"
-                    }
-                ]
-            }
-        ],
-        "prop": "payload",
-        "propout": "payload",
-        "object": "msg",
-        "objectout": "msg",
-        "x": 1150,
-        "y": 240,
-        "wires": [
-            [
-                "6bc39059.bfb35"
-            ]
-        ]
-    },
-    {
-        "id": "5dade84.364f098",
-        "type": "exec",
-        "z": "2b744329.f2992c",
-        "command": "",
-        "addpay": true,
-        "append": "",
-        "useSpawn": "false",
-        "timer": "",
-        "oldrc": false,
-        "name": "",
-        "x": 1130,
-        "y": 180,
-        "wires": [
-            [
-                "24758867.92456"
-            ],
-            [],
-            []
-        ]
-    },
-    {
-        "id": "afd46d31.3ddd8",
-        "type": "change",
-        "z": "2b744329.f2992c",
-        "name": "On Windows",
-        "rules": [
-            {
-                "t": "set",
-                "p": "payload",
-                "pt": "msg",
-                "to": "echo %HOMEDRIVE%%HOMEPATH%",
-                "tot": "str"
-            },
-            {
-                "t": "set",
-                "p": "nrg.slash",
-                "pt": "flow",
-                "to": "\\",
-                "tot": "str"
-            }
-        ],
-        "action": "",
-        "property": "",
-        "from": "",
-        "to": "",
-        "reg": false,
-        "x": 1150,
-        "y": 120,
-        "wires": [
-            [
-                "5dade84.364f098"
-            ]
-        ]
-    },
-    {
-        "id": "6bc39059.bfb35",
-        "type": "template",
-        "z": "2b744329.f2992c",
-        "name": "mime-types",
-        "field": "nrg.mimeTypes",
-        "fieldType": "flow",
-        "format": "json",
-        "syntax": "plain",
-        "template": "{\n  \"application/andrew-inset\":[\n    \"ez\"\n  ],\n  \"application/mac-binhex40\":[\n    \"hqx\"\n  ],\n  \"application/mac-compactpro\":[\n    \"cpt\"\n  ],\n  \"application/msword\":[\n    \"doc\"\n  ],\n  \"application/octet-stream\":[\n    \"bin\",\n    \"dms\",\n    \"lha\",\n    \"lzh\",\n    \"exe\",\n    \"class\",\n    \"so\",\n    \"dll\"\n  ],\n  \"application/oda\":[\n    \"oda\"\n  ],\n  \"application/pdf\":[\n    \"pdf\"\n  ],\n  \"application/postscript\":[\n    \"ai\",\n    \"eps\",\n    \"ps\"\n  ],\n  \"application/smil\":[\n    \"smi\",\n    \"smil\"\n  ],\n  \"application/vnd.mif\":[\n    \"mif\"\n  ],\n  \"application/vnd.ms-excel\":[\n    \"xls\"\n  ],\n  \"application/vnd.ms-powerpoint\":[\n    \"ppt\"\n  ],\n  \"application/vnd.wap.wbxml\":[\n    \"wbxml\"\n  ],\n  \"application/vnd.wap.wmlc\":[\n    \"wmlc\"\n  ],\n  \"application/vnd.wap.wmlscriptc\":[\n    \"wmlsc\"\n  ],\n  \"application/x-bcpio\":[\n    \"bcpio\"\n  ],\n  \"application/x-cdlink\":[\n    \"vcd\"\n  ],\n  \"application/x-chess-pgn\":[\n    \"pgn\"\n  ],\n  \"application/x-cpio\":[\n    \"cpio\"\n  ],\n  \"application/x-csh\":[\n    \"csh\"\n  ],\n  \"application/x-director\":[\n    \"dcr\",\n    \"dir\",\n    \"dxr\"\n  ],\n  \"application/x-dvi\":[\n    \"dvi\"\n  ],\n  \"application/x-futuresplash\":[\n    \"spl\"\n  ],\n  \"application/x-gtar\":[\n    \"gtar\"\n  ],\n  \"application/x-hdf\":[\n    \"hdf\"\n  ],\n  \"application/x-javascript\":[\n    \"js\"\n  ],\n  \"application/x-koan\":[\n    \"skp\",\n    \"skd\",\n    \"skt\",\n    \"skm\"\n  ],\n  \"application/x-latex\":[\n    \"latex\"\n  ],\n  \"application/x-netcdf\":[\n    \"nc\",\n    \"cdf\"\n  ],\n  \"application/x-sh\":[\n    \"sh\"\n  ],\n  \"application/x-shar\":[\n    \"shar\"\n  ],\n  \"application/x-shockwave-flash\":[\n    \"swf\"\n  ],\n  \"application/x-stuffit\":[\n    \"sit\"\n  ],\n  \"application/x-sv4cpio\":[\n    \"sv4cpio\"\n  ],\n  \"application/x-sv4crc\":[\n    \"sv4crc\"\n  ],\n  \"application/x-tar\":[\n    \"tar\"\n  ],\n  \"application/x-tcl\":[\n    \"tcl\"\n  ],\n  \"application/x-tex\":[\n    \"tex\"\n  ],\n  \"application/x-texinfo\":[\n    \"texinfo\",\n    \"texi\"\n  ],\n  \"application/x-troff\":[\n    \"t\",\n    \"tr\",\n    \"roff\"\n  ],\n  \"application/x-troff-man\":[\n    \"man\"\n  ],\n  \"application/x-troff-me\":[\n    \"me\"\n  ],\n  \"application/x-troff-ms\":[\n    \"ms\"\n  ],\n  \"application/x-ustar\":[\n    \"ustar\"\n  ],\n  \"application/x-wais-source\":[\n    \"src\"\n  ],\n  \"application/xhtml+xml\":[\n    \"xhtml\",\n    \"xht\"\n  ],\n  \"application/zip\":[\n    \"zip\"\n  ],\n  \"audio/basic\":[\n    \"au\",\n    \"snd\"\n  ],\n  \"audio/midi\":[\n    \"mid\",\n    \"midi\",\n    \"kar\"\n  ],\n  \"audio/mpeg\":[\n    \"mpga\",\n    \"mp2\",\n    \"mp3\"\n  ],\n  \"audio/x-aiff\":[\n    \"aif\",\n    \"aiff\",\n    \"aifc\"\n  ],\n  \"audio/x-mpegurl\":[\n    \"m3u\"\n  ],\n  \"audio/x-pn-realaudio\":[\n    \"ram\",\n    \"rm\"\n  ],\n  \"audio/x-pn-realaudio-plugin\":[\n    \"rpm\"\n  ],\n  \"audio/x-realaudio\":[\n    \"ra\"\n  ],\n  \"audio/x-wav\":[\n    \"wav\"\n  ],\n  \"chemical/x-pdb\":[\n    \"pdb\"\n  ],\n  \"chemical/x-xyz\":[\n    \"xyz\"\n  ],\n  \"image/bmp\":[\n    \"bmp\"\n  ],\n  \"image/gif\":[\n    \"gif\"\n  ],\n  \"image/ief\":[\n    \"ief\"\n  ],\n  \"image/jpeg\":[\n    \"jpeg\",\n    \"jpg\",\n    \"jpe\"\n  ],\n  \"image/png\":[\n    \"png\"\n  ],\n  \"image/tiff\":[\n    \"tiff\",\n    \"tif\"\n  ],\n  \"image/vnd.djvu\":[\n    \"djvu\",\n    \"djv\"\n  ],\n  \"image/vnd.wap.wbmp\":[\n    \"wbmp\"\n  ],\n  \"image/x-cmu-raster\":[\n    \"ras\"\n  ],\n  \"image/x-portable-anymap\":[\n    \"pnm\"\n  ],\n  \"image/x-portable-bitmap\":[\n    \"pbm\"\n  ],\n  \"image/x-portable-graymap\":[\n    \"pgm\"\n  ],\n  \"image/x-portable-pixmap\":[\n    \"ppm\"\n  ],\n  \"image/x-rgb\":[\n    \"rgb\"\n  ],\n  \"image/x-xbitmap\":[\n    \"xbm\"\n  ],\n  \"image/x-xpixmap\":[\n    \"xpm\"\n  ],\n  \"image/x-xwindowdump\":[\n    \"xwd\"\n  ],\n  \"model/iges\":[\n    \"igs\",\n    \"iges\"\n  ],\n  \"model/mesh\":[\n    \"msh\",\n    \"mesh\",\n    \"silo\"\n  ],\n  \"model/vrml\":[\n    \"wrl\",\n    \"vrml\"\n  ],\n  \"text/css\":[\n    \"css\"\n  ],\n  \"text/html\":[\n    \"html\",\n    \"htm\",\n    \"nrg\"\n  ],\n  \"text/plain\":[\n    \"asc\",\n    \"txt\"\n  ],\n  \"text/richtext\":[\n    \"rtx\"\n  ],\n  \"text/rtf\":[\n    \"rtf\"\n  ],\n  \"text/sgml\":[\n    \"sgml\",\n    \"sgm\"\n  ],\n  \"text/tab-separated-values\":[\n    \"tsv\"\n  ],\n  \"text/vnd.wap.wml\":[\n    \"wml\"\n  ],\n  \"text/vnd.wap.wmlscript\":[\n    \"wmls\"\n  ],\n  \"text/x-setext\":[\n    \"etx\"\n  ],\n  \"text/xml\":[\n    \"xml\",\n    \"xsl\"\n  ],\n  \"video/mpeg\":[\n    \"mpeg\",\n    \"mpg\",\n    \"mpe\"\n  ],\n  \"video/quicktime\":[\n    \"qt\",\n    \"mov\"\n  ],\n  \"video/vnd.mpegurl\":[\n    \"mxu\"\n  ],\n  \"video/x-msvideo\":[\n    \"avi\"\n  ],\n  \"video/x-sgi-movie\":[\n    \"movie\"\n  ],\n  \"x-conference/x-cooltalk\":[\n    \"ice\"\n  ],\n  \"image/svg+xml\":[\n    \"svg\"\n  ]\n}\n",
-        "output": "json",
-        "x": 1150,
-        "y": 300,
-        "wires": [
-            [
-                "a3c145fd.4299b"
-            ]
-        ]
-    },
-    {
-        "id": "b81146e2.7193e8",
-        "type": "change",
-        "z": "2b744329.f2992c",
-        "name": "set flow.nrg defaults",
-        "rules": [
-            {
-                "t": "set",
-                "p": "nrg.siteRoot",
-                "pt": "flow",
-                "to": "payload",
-                "tot": "msg"
-            },
-            {
-                "t": "set",
-                "p": "nrg.urlPath",
-                "pt": "flow",
-                "to": "",
-                "tot": "str"
-            },
-            {
-                "t": "set",
-                "p": "payload",
-                "pt": "msg",
-                "to": "nrg",
-                "tot": "flow"
-            }
-        ],
-        "action": "",
-        "property": "",
-        "from": "",
-        "to": "",
-        "reg": false,
-        "x": 1180,
-        "y": 420,
-        "wires": [
-            [
-                "b431a81f.24f2a8"
-            ]
-        ]
-    },
-    {
-        "id": "b431a81f.24f2a8",
-        "type": "actionflows",
-        "z": "2b744329.f2992c",
-        "info": "This action occurs after the NRG-Flows web server's default configuration settings\nhave been set. You can modify the `msg.payload` in this action flow by defining\na flow segment using the ActionFlows `action in/out` nodes. Changing the \n`msg.payload` contents in this action will update the settings stored in the\n`flow.nrg` context. \n\n## NRG Settings\nThe `msg.payload` object will contain the following properties that you can customize.\n\n* **siteRoot** - determines the document root folder to serve files from. The default is \"public_html\" under the current user folder. I.e. /Users/john/public_html\n* **urlPath** - determines the URL mount point where files will be appear under. The default is an empty string to serve files from the domain root. I.e. http://localhost. Set this value to begin serving under a subfolder. I.e. \"/subfolder\" will serve files under http://localhost/subfolder.\n* **mimeTypes** - determines the supported Content-Types that are set in the HTTP response header when a given file is requested. Content-Types are mapped by filename extension. This value contains an associative array.\n* **slash** - the platform directory separator \"/\" or \"\\\" (Windows) ",
-        "untilproptype": "num",
-        "proptype": "msg",
-        "name": "#config",
-        "prop": "loop",
-        "untilprop": 0,
-        "until": "gt",
-        "loop": "none",
-        "scope": "global",
-        "perf": false,
-        "seq": false,
-        "x": 1140,
-        "y": 480,
-        "wires": [
-            [
-                "a85070a2.9264c"
-            ]
-        ]
-    },
-    {
-        "id": "a85070a2.9264c",
-        "type": "change",
-        "z": "2b744329.f2992c",
-        "name": "copy msg.payload to flow.nrg",
-        "rules": [
-            {
-                "t": "set",
-                "p": "nrg",
-                "pt": "flow",
-                "to": "payload",
-                "tot": "msg"
-            }
-        ],
-        "action": "",
-        "property": "",
-        "from": "",
-        "to": "",
-        "reg": false,
-        "x": 1210,
-        "y": 540,
-        "wires": [
-            [
-                "b1288c2b.838a"
-            ]
-        ]
-    },
-    {
-        "id": "f6b0d14a.8a4d6",
-        "type": "http in",
-        "z": "2b744329.f2992c",
-        "name": "http",
-        "url": "*",
-        "method": "get",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 70,
-        "y": 120,
-        "wires": [
-            [
-                "713f58e0.db92d"
-            ]
-        ]
-    },
-    {
-        "id": "1f01889c.8a2a8f",
-        "type": "change",
-        "z": "2b744329.f2992c",
-        "name": "$HOME",
-        "rules": [
-            {
-                "t": "set",
-                "p": "payload",
-                "pt": "msg",
-                "to": "echo $HOME",
-                "tot": "str"
-            },
-            {
-                "t": "set",
-                "p": "nrg.slash",
-                "pt": "flow",
-                "to": "/",
-                "tot": "str"
-            }
-        ],
-        "action": "",
-        "property": "",
-        "from": "",
-        "to": "",
-        "reg": false,
-        "x": 920,
-        "y": 180,
-        "wires": [
-            [
-                "cf1f8037.d87e28"
-            ]
-        ]
-    },
-    {
-        "id": "2b6e2eb1.d525a2",
-        "type": "actionflows_in",
-        "z": "2b744329.f2992c",
-        "name": "#deployed",
-        "priority": "50",
-        "links": [],
-        "scope": "private",
-        "x": 920,
-        "y": 120,
-        "wires": [
-            [
-                "1f01889c.8a2a8f"
-            ]
-        ]
-    },
-    {
-        "id": "b1288c2b.838a",
-        "type": "actionflows_out",
-        "z": "2b744329.f2992c",
-        "name": "#deployed",
-        "links": [],
-        "x": 1150,
-        "y": 600,
-        "wires": []
-    },
-    {
-        "id": "282ebcaf.20a0ac",
-        "type": "comment",
-        "z": "2b744329.f2992c",
-        "name": "Serve files from siteRoot",
-        "info": "",
-        "x": 130,
-        "y": 80,
-        "wires": []
-    },
-    {
-        "id": "8bc0b867.d4323",
-        "type": "function",
-        "z": "2b744329.f2992c",
-        "name": "resolver",
-        "func": "/*\n * Resolve the GET request to a filename and it's content type\n * msg.filename - the filename to be read and sent to client\n * msg.topic - the Content-Type to be sent in the header\n * msg.statusCode - set to default 200, OK\n * msg.headers - initialize headers to empty object {}\n */\n\n// Use string object in our function\nvar S = function(x) {\n  return msg.string.setValue(x);\n}\n\n// Check for invalid urlPath\nvar nrg = flow.get(\"nrg\");\nmsg.statusCode = 200;\nif (!msg.req.url.startsWith(nrg.urlPath)) {\n    msg.statusCode = 403;\n    node.send(msg);\n    return;\n}\n\n// Obtain filepath\nvar file = S(msg.req.url).delLeftMost(nrg.urlPath)\n           .prepend(nrg.siteRoot);\nvar ext = file.getRightMost(\"/\");\n\n// Missing file extension and last slash, 301 to folder/\nif (ext.indexOf(\".\") == -1 && file.substr(file.length -1) != \"/\") {\n    msg.statusCode = 301;\n    msg.headers = {\n        Location: \"http://\" + msg.req.headers.host + S(msg.req.url).ensureRight(\"/\").toString()\n    }\n    delete msg.payload;\n    node.send(msg);\n    return;\n}\n\n// Missing file extension, assume folder and \"/index.nrg\"\nif (ext.indexOf(\".\") == -1) {\n    ext = \"nrg\";\n    msg.req.url = S(msg.req.url).ensureRight(\"/\").toString();\n    file = file.ensureRight(\"/\").concat(\"index.nrg\");\n}else{\n    ext = ext.getRightMost(\".\").s;\n}\nmsg.filename = file.s;\n\n// Prevent forbidden extensions\nif (nrg.forbidden.indexOf(ext) != -1) {\n    msg.statusCode = 403;\n    node.send(msg);\n    return;\n}\n\n// Callback hell; find the file or try index.nrg, index.html, index.htm\nvar af = global.get(\"actionflows\");\nvar p = af.invoke(\"#getFile\", msg);\np.then(function(msg) {\n    if (typeof msg.error != \"undefined\") {\n        msg.statusCode = 404;\n        if (msg.filename.endsWith(\"index.nrg\")) {\n            \n            // Try index.html\n            var s = S(msg.filename);\n            msg.filename = s.delRightMost(\"index.nrg\").concat(\"index.html\").s;\n            delete msg.error;\n            p = af.invoke(\"#getFile\", msg);\n            p.then(function(msg) {\n                if (typeof msg.error != \"undefined\") {\n\n                    // Try index.htm\n                    var s = S(msg.filename);\n                    msg.filename = s.delRightMost(\"index.html\").concat(\"index.htm\").s;\n                    delete msg.error;\n                    p = af.invoke(\"#getFile\", msg);\n                    p.then(function(msg) {\n                        if (typeof msg.error != \"undefined\") {\n                            msg.statusCode = 404;\n                            node.send(msg);\n                        }else{\n                            msg.statusCode = 200;\n                            node.send(msg);\n                        }\n                    });\n                }else{\n                    msg.statusCode = 200;\n                    node.send(msg);\n                }\n            });\n        }else{\n            msg.statusCode = 200;\n            node.send(msg);\n        }\n    }else{\n        node.send(msg);\n    }\n});\n",
-        "outputs": 1,
-        "noerr": 0,
-        "x": 80,
-        "y": 240,
-        "wires": [
-            [
-                "dcddcdc9.38dfe"
-            ]
-        ]
-    },
-    {
-        "id": "713f58e0.db92d",
-        "type": "string",
-        "z": "2b744329.f2992c",
-        "name": "",
-        "methods": [],
-        "prop": "",
-        "propout": "string",
-        "object": "str",
-        "objectout": "msg",
-        "x": 70,
-        "y": 180,
-        "wires": [
-            [
-                "8bc0b867.d4323"
-            ]
-        ]
-    },
-    {
-        "id": "b28d719c.199b98",
-        "type": "http response",
-        "z": "2b744329.f2992c",
-        "name": "http",
-        "statusCode": "",
-        "headers": {},
-        "x": 70,
-        "y": 420,
-        "wires": []
-    },
-    {
-        "id": "f3f68a1.9ae0078",
-        "type": "actionflows_in",
-        "z": "2b744329.f2992c",
-        "name": "#getFile",
-        "priority": "60",
-        "links": [],
-        "scope": "private",
-        "x": 70,
-        "y": 540,
-        "wires": [
-            [
-                "8e180d90.02a97"
-            ]
-        ]
-    },
-    {
-        "id": "2da6c6e8.ab7f42",
-        "type": "actionflows_out",
-        "z": "2b744329.f2992c",
-        "name": "#getFile",
-        "links": [],
-        "x": 260,
-        "y": 600,
-        "wires": []
-    },
-    {
-        "id": "8e180d90.02a97",
-        "type": "file in",
-        "z": "2b744329.f2992c",
-        "name": "getFile",
-        "filename": "",
-        "format": "",
-        "chunk": false,
-        "sendError": false,
-        "x": 210,
-        "y": 540,
-        "wires": [
-            [
-                "2da6c6e8.ab7f42"
-            ]
-        ]
-    },
-    {
-        "id": "f3f570e3.8081c8",
-        "type": "catch",
-        "z": "2b744329.f2992c",
-        "name": "getFileError",
-        "scope": [
-            "8e180d90.02a97"
-        ],
-        "x": 90,
-        "y": 600,
-        "wires": [
-            [
-                "2da6c6e8.ab7f42"
-            ]
-        ]
-    },
-    {
-        "id": "bd6c20f7.4e5f58",
-        "type": "comment",
-        "z": "2b744329.f2992c",
-        "name": "Find the file for resolver, includes, jss",
-        "info": "",
-        "x": 160,
-        "y": 500,
-        "wires": []
-    },
-    {
-        "id": "dcddcdc9.38dfe",
-        "type": "function",
-        "z": "2b744329.f2992c",
-        "name": "find nrg",
-        "func": "// Include nrg, actionflows\nvar af = global.get(\"actionflows\");\nvar nrg = flow.get(\"nrg\");\n\n// Use string object in our function\nvar S = function(x) {\n  return msg.string.setValue(x);\n};\n\n// Process redirect\nif (msg.statusCode == 301) {\n    node.send([msg, null]);\n    return;\n}\n\n// Get Content-Type by extension to mime-types\nvar ext = S(msg.filename).getRightMost(\".\").s;\nmsg.topic = \"text/html\";\nfor (var key in nrg.mimeTypes) {\n    if (nrg.mimeTypes[key].indexOf(ext) != -1) {\n        msg.topic = key;\n        break;\n    }\n}\n\n// Process error templates\nif (msg.statusCode != 200) {\n    var p = af.invoke(\"#\" + msg.statusCode + \"error\", msg);\n    p.then(function(msg) {\n        node.send([msg, null]);\n    });\n}else{\n\n    // Process .nrg files\n    if (ext == \"nrg\") {\n        node.send([null, msg]);\n    }else{\n        node.send([msg, null]);\n    }\n}\n",
-        "outputs": "2",
-        "noerr": 0,
-        "x": 80,
-        "y": 300,
-        "wires": [
-            [
-                "1c34724e.da55f6"
-            ],
-            [
-                "5432c115.d72d"
-            ]
-        ]
-    },
-    {
-        "id": "1c34724e.da55f6",
-        "type": "change",
-        "z": "2b744329.f2992c",
-        "name": "Content-Type",
-        "rules": [
-            {
-                "t": "set",
-                "p": "headers.Content-Type",
-                "pt": "msg",
-                "to": "topic",
-                "tot": "msg"
-            }
-        ],
-        "action": "",
-        "property": "",
-        "from": "",
-        "to": "",
-        "reg": false,
-        "x": 100,
-        "y": 360,
-        "wires": [
-            [
-                "b28d719c.199b98",
-                "98839e5a.02e738"
-            ]
-        ]
-    },
-    {
-        "id": "d586ca90.50d4b8",
-        "type": "actionflows_in",
-        "z": "2b744329.f2992c",
-        "name": "#404error",
-        "priority": "49",
-        "links": [],
-        "scope": "private",
-        "x": 440,
-        "y": 480,
-        "wires": [
-            [
-                "770a8f00.d761c8"
-            ]
-        ]
-    },
-    {
-        "id": "e240016d.5328e",
-        "type": "actionflows_out",
-        "z": "2b744329.f2992c",
-        "name": "#404error",
-        "links": [],
-        "x": 720,
-        "y": 480,
-        "wires": []
-    },
-    {
-        "id": "770a8f00.d761c8",
-        "type": "template",
-        "z": "2b744329.f2992c",
-        "name": "Template",
-        "field": "payload",
-        "fieldType": "msg",
-        "format": "handlebars",
-        "syntax": "mustache",
-        "template": "404 Not Found <span>{{req.url}}</span>",
-        "output": "str",
-        "x": 580,
-        "y": 480,
-        "wires": [
-            [
-                "e240016d.5328e"
-            ]
-        ]
-    },
-    {
-        "id": "b62604a4.7ccf48",
-        "type": "actionflows_in",
-        "z": "2b744329.f2992c",
-        "name": "#403error",
-        "priority": "49",
-        "links": [],
-        "scope": "private",
-        "x": 440,
-        "y": 420,
-        "wires": [
-            [
-                "9223906.c1fd6f"
-            ]
-        ]
-    },
-    {
-        "id": "9223906.c1fd6f",
-        "type": "template",
-        "z": "2b744329.f2992c",
-        "name": "Template",
-        "field": "payload",
-        "fieldType": "msg",
-        "format": "handlebars",
-        "syntax": "mustache",
-        "template": "403 Forbidden <span>{{req.url}}</span>\n",
-        "output": "str",
-        "x": 580,
-        "y": 420,
-        "wires": [
-            [
-                "a515655f.f44b1"
-            ]
-        ]
-    },
-    {
-        "id": "a515655f.f44b1",
-        "type": "actionflows_out",
-        "z": "2b744329.f2992c",
-        "name": "#403error",
-        "links": [],
-        "x": 720,
-        "y": 420,
-        "wires": []
-    },
-    {
-        "id": "98fc8d4d.1f062",
-        "type": "comment",
-        "z": "2b744329.f2992c",
-        "name": "Default error pages",
-        "info": "",
-        "x": 470,
-        "y": 380,
-        "wires": []
-    },
-    {
-        "id": "e50b1a1.21be468",
-        "type": "function",
-        "z": "2b744329.f2992c",
-        "name": "nrgFlows",
-        "func": "// Use string object in our function\nvar S = function(x) {\n  return msg.string.setValue(x);\n};\n\n// Check nrg file syntax, report any errors\nif (typeof msg.error != \"undefined\" || msg.statusCode == 500) {\n    var af = global.get(\"actionflows\");\n    node.error(msg.error.message);\n    msg.statusCode = 500;\n    var p = af.invoke(\"#\" + msg.statusCode + \"error\", msg);\n    p.then(function(msg) {\n        node.send(msg);\n    });\n    return;\n}\n\n// Get list of all nrg tags in the order they appear\n// with attributes as object\nvar nrgtag = [];\nfunction getKeys(p) {\n    var keys = [];\n    for (var key in p) {\n        keys.push(key);\n        if (key.startsWith(\"nrg_\")) {\n            if (Array.isArray(p[key])) {\n                for (var i = 0; i < p[key].length; i++) {\n                   nrgtag.push(Object.assign({action:key.substr(4)}, p[key][i].$));\n                }\n            }else{\n                nrgtag.push(Object.assign({action:key.substr(4)}, p[key].$));\n            }\n        }\n        if (typeof p[key] == \"object\") {\n          keys = keys.concat(getKeys(p[key]));  \n        }\n    }\n    return keys;\n}\ngetKeys(msg.payload);\nmsg.payload = \"\";\n\n// Invoke nrgFlows\nmsg.outputBuffer = \"\";\nvar af = global.get(\"actionflows\");\nvar nrg = flow.get(\"nrg\");\nfunction nrgFlows() {\n    if (nrgtag.length == 0) {\n        msg.outputBuffer += msg.payload + msg.pre;\n        msg.payload = msg.outputBuffer.substr(5, msg.outputBuffer.length - 11);\n        delete msg.outputBuffer;\n        delete msg.pre;\n        node.send(msg);\n        return;\n    }\n    var n = nrgtag.shift();\n    msg.outputBuffer += msg.pre.getLeftMost(\"<nrg_\" + n.action);\n    msg.pre = msg.pre.delLeftMost(\"<nrg_\" + n.action);\n\n    if (n.selfclosing == \"true\") {\n        msg.pre = msg.pre.delLeftMost(\"/>\");\n    }else{\n        // Obtain block for payload\n        msg.pre = msg.pre.delLeftMost(\">\");\n        n.payload = msg.pre.getLeftMost(\"</nrg_\" + n.action + \">\").s;\n        msg.pre = msg.pre.delLeftMost(\"</nrg_\" + n.action + \">\");\n    }\n    msg = Object.assign(msg, n);\n    delete msg.action;\n    if (n.action == \"script\") {\n        n.action = \"#\" + n.action;\n        delete msg.filename;\n        if (n.selfclosing == \"true\") {\n            var file = S(n.payload).replaceAll(\"/\", nrg.slash).replaceAll(\"\\\\\", nrg.slash);\n            if (file.left(1) != nrg.slash) {\n                file = file.prepend(nrg.siteRoot + nrg.slash).s;\n            }\n            msg.filename = file;\n            msg.evalScript = \"\";\n            msg.payload = \"\";\n        }else{\n            msg.evalScript = n.payload;\n            msg.payload = \"\";\n        }\n    }\n    var p = af.invoke(n.action, msg);\n    p.then(function(msg) {\n        // Report any errors\n        if (msg.statusCode != 200) {\n            var p = af.invoke(\"#\" + msg.statusCode + \"error\", msg);\n            p.then(function(msg) {\n                node.send(msg);\n            });\n            return;\n        }\n        if (nrgtag.length > 0) {\n            msg.outputBuffer += msg.payload;\n            nrgFlows();\n        }else{\n            msg.outputBuffer += msg.payload + msg.pre;\n            msg.payload = msg.outputBuffer.substr(5, msg.outputBuffer.length - 11);\n            delete msg.outputBuffer;\n            delete msg.pre;\n            node.send(msg);\n        }\n    });\n}\nnrgFlows();\n\n",
-        "outputs": 1,
-        "noerr": 0,
-        "x": 660,
-        "y": 180,
-        "wires": [
-            [
-                "3f2bc9dd.26ca96"
-            ]
-        ]
-    },
-    {
-        "id": "cb8c7604.11b738",
-        "type": "comment",
-        "z": "2b744329.f2992c",
-        "name": "Process .nrg files",
-        "info": "",
-        "x": 460,
-        "y": 80,
-        "wires": []
-    },
-    {
-        "id": "1e729891.603967",
-        "type": "http response",
-        "z": "2b744329.f2992c",
-        "name": "http",
-        "statusCode": "",
-        "headers": {},
-        "x": 650,
-        "y": 300,
-        "wires": []
-    },
-    {
-        "id": "3f2bc9dd.26ca96",
-        "type": "change",
-        "z": "2b744329.f2992c",
-        "name": "Content-Type",
-        "rules": [
-            {
-                "t": "set",
-                "p": "headers.Content-Type",
-                "pt": "msg",
-                "to": "topic",
-                "tot": "msg"
-            }
-        ],
-        "action": "",
-        "property": "",
-        "from": "",
-        "to": "",
-        "reg": false,
-        "x": 680,
-        "y": 240,
-        "wires": [
-            [
-                "1e729891.603967"
-            ]
-        ]
-    },
-    {
-        "id": "5a7f134f.091e24",
-        "type": "xml",
-        "z": "2b744329.f2992c",
-        "name": "",
-        "attr": "",
-        "chr": "",
-        "x": 650,
-        "y": 120,
-        "wires": [
-            [
-                "e50b1a1.21be468"
-            ]
-        ]
-    },
-    {
-        "id": "dedb7d0b.1d6ce",
-        "type": "catch",
-        "z": "2b744329.f2992c",
-        "name": "xmlError",
-        "scope": [
-            "5a7f134f.091e24"
-        ],
-        "x": 440,
-        "y": 300,
-        "wires": [
-            [
-                "e50b1a1.21be468"
-            ]
-        ]
-    },
-    {
-        "id": "9f05eaf.91f2998",
-        "type": "actionflows_in",
-        "z": "2b744329.f2992c",
-        "name": "#500error",
-        "priority": "49",
-        "links": [],
-        "scope": "private",
-        "x": 440,
-        "y": 540,
-        "wires": [
-            [
-                "1cdf8ef5.53b081"
-            ]
-        ]
-    },
-    {
-        "id": "a9a6f75e.a22f58",
-        "type": "actionflows_out",
-        "z": "2b744329.f2992c",
-        "name": "#500error",
-        "links": [],
-        "x": 720,
-        "y": 540,
-        "wires": []
-    },
-    {
-        "id": "1cdf8ef5.53b081",
-        "type": "template",
-        "z": "2b744329.f2992c",
-        "name": "Template",
-        "field": "payload",
-        "fieldType": "msg",
-        "format": "handlebars",
-        "syntax": "mustache",
-        "template": "500 Internal Error <span>{{error.message}}</span>",
-        "output": "str",
-        "x": 580,
-        "y": 540,
-        "wires": [
-            [
-                "a9a6f75e.a22f58"
-            ]
-        ]
-    },
-    {
-        "id": "a3c145fd.4299b",
-        "type": "template",
-        "z": "2b744329.f2992c",
-        "name": "forbidden",
-        "field": "nrg.forbidden",
-        "fieldType": "flow",
-        "format": "json",
-        "syntax": "plain",
-        "template": "[\"flow\",\"jss\"]",
-        "output": "json",
-        "x": 1140,
-        "y": 360,
-        "wires": [
-            [
-                "b81146e2.7193e8"
-            ]
-        ]
-    },
-    {
-        "id": "32c31e51.ef2a72",
-        "type": "comment",
-        "z": "2b744329.f2992c",
-        "name": "Reserved names for nrgFlows / directives",
-        "info": "",
-        "x": 180,
-        "y": 680,
-        "wires": []
-    },
-    {
-        "id": "958b7cb8.451438",
-        "type": "actionflows_in",
-        "z": "2b744329.f2992c",
-        "name": "#prefix",
-        "priority": "50",
-        "links": [],
-        "scope": "private",
-        "x": 70,
-        "y": 840,
-        "wires": [
-            [
-                "cce5e318.53f52"
-            ]
-        ]
-    },
-    {
-        "id": "cce5e318.53f52",
-        "type": "actionflows_out",
-        "z": "2b744329.f2992c",
-        "name": "#prefix",
-        "links": [],
-        "x": 230,
-        "y": 840,
-        "wires": []
-    },
-    {
-        "id": "fb5883bd.6798e8",
-        "type": "actionflows_in",
-        "z": "2b744329.f2992c",
-        "name": "#require",
-        "priority": "50",
-        "links": [],
-        "scope": "private",
-        "x": 80,
-        "y": 780,
-        "wires": [
-            [
-                "bbe20e2a.db9078"
-            ]
-        ]
-    },
-    {
-        "id": "bbe20e2a.db9078",
-        "type": "actionflows_out",
-        "z": "2b744329.f2992c",
-        "name": "#require",
-        "links": [],
-        "x": 240,
-        "y": 780,
-        "wires": []
-    },
-    {
-        "id": "9ed2490d.9d7438",
-        "type": "actionflows_in",
-        "z": "2b744329.f2992c",
-        "name": "#script",
-        "priority": "50",
-        "links": [],
-        "scope": "private",
-        "x": 70,
-        "y": 900,
-        "wires": [
-            [
-                "6a70de84.48ee28"
-            ]
-        ]
-    },
-    {
-        "id": "bbc133d1.ff85d",
-        "type": "actionflows_out",
-        "z": "2b744329.f2992c",
-        "name": "#script",
-        "links": [],
-        "x": 510,
-        "y": 900,
-        "wires": []
-    },
-    {
-        "id": "35cd5fd8.c65a88",
-        "type": "actionflows_in",
-        "z": "2b744329.f2992c",
-        "name": "#include",
-        "priority": "1",
-        "links": [],
-        "scope": "private",
-        "x": 80,
-        "y": 720,
-        "wires": [
-            [
-                "7fe2252b.cabe14"
-            ]
-        ]
-    },
-    {
-        "id": "9f14e2aa.f420b",
-        "type": "actionflows_out",
-        "z": "2b744329.f2992c",
-        "name": "#include",
-        "links": [],
-        "x": 520,
-        "y": 720,
-        "wires": []
-    },
-    {
-        "id": "5432c115.d72d",
-        "type": "string",
-        "z": "2b744329.f2992c",
-        "name": "nrgWrap",
-        "methods": [
-            {
-                "name": "wrapHTML",
-                "params": [
-                    {
-                        "type": "str",
-                        "value": "nrg"
-                    },
-                    {
-                        "type": "json",
-                        "value": ""
-                    }
-                ]
-            }
-        ],
-        "prop": "payload",
-        "propout": "payload",
-        "object": "msg",
-        "objectout": "msg",
-        "x": 440,
-        "y": 120,
-        "wires": [
-            [
-                "bef6675.ac1de18"
-            ]
-        ]
-    },
-    {
-        "id": "7fe2252b.cabe14",
-        "type": "function",
-        "z": "2b744329.f2992c",
-        "name": "formatXML",
-        "func": "// Preprocess nrg files, convert short format syntax to\n// XML compatible with attributes\n\n// Use string object in our function\nvar S = function(x) {\n  return msg.string.setValue(x);\n};\n\nvar chunks = S(msg.payload).replaceAll(\"<#\", \"<nrg_\").replaceAll(\"</#\", \"</nrg_\").splitLeft(\"<nrg_\", -1);\nvar result = \"\";\nif (typeof msg.includes == \"undefined\") {\n    msg.includes = {};\n}\nwhile(chunks.length > 0) {\n    var chunk = S(chunks.shift());\n    // TODO: replace dirty hack; match brackets ignoring quoted string\n    var tag = chunk.getLeftMost(String.fromCharCode(10))\n        .replaceAll('\">\"', '~|~').getLeftMost(\">\").append(\">\")\n        .replaceAll('~|~', '\">\"'); // This overcomes until=\">\" scenario\n    chunk = chunk.delLeftMost(tag);\n    // Identify self-closing\n    if (tag.right(2) == \"/>\" && tag.indexOf(\"selfclosing\") == -1) {\n        tag = S(tag.slice(0, -2).trim() + \" selfclosing=\\\"true\\\" />\");\n    }\n    \n    // Expand short format\n    if (tag.indexOf(\"(\") != -1 && tag.indexOf(\");\") != -1) {\n        var before = tag.getLeftMost(\"(\");\n        var value = tag.delLeftMost(\"(\").getLeftMost(\");\");\n        if (value.length !== 0) {\n            value = value.ensureLeft('\"').ensureRight('\"');\n        }else{\n            value = '\"\"';\n        }\n        var after = tag.delLeftMost(\");\");\n        tag = before + \" payload=\" + value + after;\n    }\n    if (tag.indexOf(\"include \") != -1) {\n        var file = S(tag).delLeftMost('payload=\"').getLeftMost('\"');\n        if (typeof msg.includes[file] == \"undefined\") {\n            msg.includes[file] = null;\n        }\n    }\n    chunk = tag + chunk;\n    result = result + chunk;\n    if (chunks.length > 0) {\n         result += \"<nrg_\";\n    }else{\n        msg.payload = result;\n        node.send(msg);\n    }    \n}",
-        "outputs": 1,
-        "noerr": 0,
-        "x": 230,
-        "y": 720,
-        "wires": [
-            [
-                "60b88683.ac0c8"
-            ]
-        ]
-    },
-    {
-        "id": "c0036e14.ee8ec8",
-        "type": "actionflows",
-        "z": "2b744329.f2992c",
-        "info": "Process all includes recursively, \nreturning the entire document.",
-        "untilproptype": "bool",
-        "proptype": "msg",
-        "name": "#include",
-        "prop": "loop",
-        "untilprop": "false",
-        "until": "eq",
-        "loop": "watch",
-        "scope": "private",
-        "perf": false,
-        "seq": false,
-        "x": 440,
-        "y": 240,
-        "wires": [
-            [
-                "5a7f134f.091e24"
-            ]
-        ]
-    },
-    {
-        "id": "60b88683.ac0c8",
-        "type": "function",
-        "z": "2b744329.f2992c",
-        "name": "includes",
-        "func": "// check that includes are obtained\n// check if includes is in payload, if so, replace it with code and \n// set msg.loop = true else false\n\n// Use string object in our function\nvar S = function(x) {\n  return msg.string.setValue(x);\n};\nvar af = global.get(\"actionflows\");\nvar nrg = flow.get(\"nrg\");\n\n// Read all include files\nvar preads = [];\nfor (var key in msg.includes) {\n    if (msg.includes[key] === null) {\n        var file = S(key).replaceAll(\"/\", nrg.slash).replaceAll(\"\\\\\", nrg.slash);\n        if (file.left(1) != nrg.slash && file.charAt(2) != \":\") {\n            file = file.prepend(nrg.siteRoot + nrg.slash).s;\n        }\n        var m = { filename: file, payload: \"\" };\n        preads.push(af.invoke(\"#getFile\", m).then(function(m) {\n            if (typeof m.error == \"undefined\") {\n                msg.includes[key] = String(m.payload);\n            }else{\n                msg.error = m.error;\n                node.error(msg.error.message);\n                msg.statusCode = 500;\n            }\n        }));\n    }\n}\n\n// Swap out all includes\nPromise.all(preads).then(function() {\n    var result = S(msg.payload);\n    for (var key in msg.includes) {\n        var tag = '<nrg_include payload=\"' + key + '\" selfclosing=\"true\" />';\n        result = result.replaceAll(tag, msg.includes[key]);\n    }\n    msg.payload = result.s;\n    \n    if (msg.payload.indexOf(\"<#include\") == -1) {\n        msg.pre = S(msg.payload); // preload looks too much like payload\n        msg.loop = false;\n    }else{\n        msg.loop = true;\n    }\n    node.send(msg);\n});\n",
-        "outputs": "1",
-        "noerr": 0,
-        "x": 380,
-        "y": 720,
-        "wires": [
-            [
-                "9f14e2aa.f420b"
-            ]
-        ]
-    },
-    {
-        "id": "bef6675.ac1de18",
-        "type": "change",
-        "z": "2b744329.f2992c",
-        "name": "initLoop",
-        "rules": [
-            {
-                "t": "set",
-                "p": "loop",
-                "pt": "msg",
-                "to": "true",
-                "tot": "bool"
-            }
-        ],
-        "action": "",
-        "property": "",
-        "from": "",
-        "to": "",
-        "reg": false,
-        "x": 440,
-        "y": 180,
-        "wires": [
-            [
-                "c0036e14.ee8ec8"
-            ]
-        ]
-    },
-    {
-        "id": "6a70de84.48ee28",
-        "type": "function",
-        "z": "2b744329.f2992c",
-        "name": "evalScript",
-        "func": "// Execute inline script block\nif (typeof msg.filename == \"undefined\") {\n    return eval(\"(function(){\" + msg.evalScript + \"})();\");\n\n// Obtain JavaScript server-side (.jss)\n}else{\n    var af = global.get(\"actionflows\");\n    var p = af.invoke(\"#getFile\", msg);\n    p.then(function(msg) {\n        if (typeof msg.error == \"undefined\") {\n            msg.evalScript = msg.payload;\n            msg.payload = \"\";\n            var result = eval(\"(function(){\" + msg.evalScript + \"})();\");\n            if (typeof result != \"undefined\") {\n                node.send(result);\n            }\n        }else{\n            node.error(msg.error.message);\n            msg.statusCode = 500;\n            node.send(msg);\n        }\n    });\n}\n",
-        "outputs": 1,
-        "noerr": 0,
-        "x": 280,
-        "y": 900,
-        "wires": [
-            [
-                "bbc133d1.ff85d"
-            ]
-        ]
-    },
-    {
-        "id": "d82d81e2.0c1e6",
-        "type": "comment",
-        "z": "2b744329.f2992c",
-        "name": "NRG version 0.0.1, © 2018 Stephen J. Carnam",
-        "info": "",
-        "x": 200,
-        "y": 40,
-        "wires": []
     },
     {
         "id": "aaec9eb8.b18e",
@@ -1213,17 +162,1022 @@
         ]
     },
     {
-        "id": "98839e5a.02e738",
-        "type": "debug",
-        "z": "2b744329.f2992c",
+        "id": "40ed4bd.62fd2b4",
+        "type": "comment",
+        "z": "1c7dd13.e21a82f",
+        "name": "Determine default siteRoot via cross-platform flow",
+        "info": "",
+        "x": 1050,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "345eed66.713be2",
+        "type": "exec",
+        "z": "1c7dd13.e21a82f",
+        "command": "",
+        "addpay": true,
+        "append": "",
+        "useSpawn": "false",
+        "timer": "",
+        "oldrc": false,
         "name": "",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "x": 270,
-        "y": 440,
+        "x": 910,
+        "y": 480,
+        "wires": [
+            [
+                "f7e262da.74c27"
+            ],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "f7e262da.74c27",
+        "type": "switch",
+        "z": "1c7dd13.e21a82f",
+        "name": "",
+        "property": "payload",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "cont",
+                "v": "$HOME",
+                "vt": "str"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "true",
+        "outputs": 2,
+        "x": 910,
+        "y": 540,
+        "wires": [
+            [
+                "efa7d985.26515"
+            ],
+            [
+                "429ebbb9.797d44"
+            ]
+        ]
+    },
+    {
+        "id": "429ebbb9.797d44",
+        "type": "string",
+        "z": "1c7dd13.e21a82f",
+        "name": "/public_html",
+        "methods": [
+            {
+                "name": "trim",
+                "params": []
+            },
+            {
+                "name": "append",
+                "params": [
+                    {
+                        "type": "str",
+                        "value": "/public_html"
+                    }
+                ]
+            }
+        ],
+        "prop": "payload",
+        "propout": "payload",
+        "object": "msg",
+        "objectout": "msg",
+        "x": 930,
+        "y": 600,
+        "wires": [
+            [
+                "b246794f.4879b8"
+            ]
+        ]
+    },
+    {
+        "id": "9c6e2399.68a0d8",
+        "type": "string",
+        "z": "1c7dd13.e21a82f",
+        "name": "\\public_html",
+        "methods": [
+            {
+                "name": "trim",
+                "params": []
+            },
+            {
+                "name": "append",
+                "params": [
+                    {
+                        "type": "str",
+                        "value": "\\public_html"
+                    }
+                ]
+            }
+        ],
+        "prop": "payload",
+        "propout": "payload",
+        "object": "msg",
+        "objectout": "msg",
+        "x": 1150,
+        "y": 480,
+        "wires": [
+            [
+                "b246794f.4879b8"
+            ]
+        ]
+    },
+    {
+        "id": "a842d668.5c0d18",
+        "type": "exec",
+        "z": "1c7dd13.e21a82f",
+        "command": "",
+        "addpay": true,
+        "append": "",
+        "useSpawn": "false",
+        "timer": "",
+        "oldrc": false,
+        "name": "",
+        "x": 1130,
+        "y": 420,
+        "wires": [
+            [
+                "9c6e2399.68a0d8"
+            ],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "efa7d985.26515",
+        "type": "change",
+        "z": "1c7dd13.e21a82f",
+        "name": "On Windows",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "echo %HOMEDRIVE%%HOMEPATH%",
+                "tot": "str"
+            },
+            {
+                "t": "set",
+                "p": "nrg.slash",
+                "pt": "flow",
+                "to": "\\",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1150,
+        "y": 360,
+        "wires": [
+            [
+                "a842d668.5c0d18"
+            ]
+        ]
+    },
+    {
+        "id": "b246794f.4879b8",
+        "type": "template",
+        "z": "1c7dd13.e21a82f",
+        "name": "mime-types",
+        "field": "nrg.mimeTypes",
+        "fieldType": "flow",
+        "format": "json",
+        "syntax": "plain",
+        "template": "{\n  \"application/andrew-inset\":[\n    \"ez\"\n  ],\n  \"application/mac-binhex40\":[\n    \"hqx\"\n  ],\n  \"application/mac-compactpro\":[\n    \"cpt\"\n  ],\n  \"application/msword\":[\n    \"doc\"\n  ],\n  \"application/octet-stream\":[\n    \"bin\",\n    \"dms\",\n    \"lha\",\n    \"lzh\",\n    \"exe\",\n    \"class\",\n    \"so\",\n    \"dll\"\n  ],\n  \"application/oda\":[\n    \"oda\"\n  ],\n  \"application/pdf\":[\n    \"pdf\"\n  ],\n  \"application/postscript\":[\n    \"ai\",\n    \"eps\",\n    \"ps\"\n  ],\n  \"application/smil\":[\n    \"smi\",\n    \"smil\"\n  ],\n  \"application/vnd.mif\":[\n    \"mif\"\n  ],\n  \"application/vnd.ms-excel\":[\n    \"xls\"\n  ],\n  \"application/vnd.ms-powerpoint\":[\n    \"ppt\"\n  ],\n  \"application/vnd.wap.wbxml\":[\n    \"wbxml\"\n  ],\n  \"application/vnd.wap.wmlc\":[\n    \"wmlc\"\n  ],\n  \"application/vnd.wap.wmlscriptc\":[\n    \"wmlsc\"\n  ],\n  \"application/x-bcpio\":[\n    \"bcpio\"\n  ],\n  \"application/x-cdlink\":[\n    \"vcd\"\n  ],\n  \"application/x-chess-pgn\":[\n    \"pgn\"\n  ],\n  \"application/x-cpio\":[\n    \"cpio\"\n  ],\n  \"application/x-csh\":[\n    \"csh\"\n  ],\n  \"application/x-director\":[\n    \"dcr\",\n    \"dir\",\n    \"dxr\"\n  ],\n  \"application/x-dvi\":[\n    \"dvi\"\n  ],\n  \"application/x-futuresplash\":[\n    \"spl\"\n  ],\n  \"application/x-gtar\":[\n    \"gtar\"\n  ],\n  \"application/x-hdf\":[\n    \"hdf\"\n  ],\n  \"application/x-javascript\":[\n    \"js\"\n  ],\n  \"application/x-koan\":[\n    \"skp\",\n    \"skd\",\n    \"skt\",\n    \"skm\"\n  ],\n  \"application/x-latex\":[\n    \"latex\"\n  ],\n  \"application/x-netcdf\":[\n    \"nc\",\n    \"cdf\"\n  ],\n  \"application/x-sh\":[\n    \"sh\"\n  ],\n  \"application/x-shar\":[\n    \"shar\"\n  ],\n  \"application/x-shockwave-flash\":[\n    \"swf\"\n  ],\n  \"application/x-stuffit\":[\n    \"sit\"\n  ],\n  \"application/x-sv4cpio\":[\n    \"sv4cpio\"\n  ],\n  \"application/x-sv4crc\":[\n    \"sv4crc\"\n  ],\n  \"application/x-tar\":[\n    \"tar\"\n  ],\n  \"application/x-tcl\":[\n    \"tcl\"\n  ],\n  \"application/x-tex\":[\n    \"tex\"\n  ],\n  \"application/x-texinfo\":[\n    \"texinfo\",\n    \"texi\"\n  ],\n  \"application/x-troff\":[\n    \"t\",\n    \"tr\",\n    \"roff\"\n  ],\n  \"application/x-troff-man\":[\n    \"man\"\n  ],\n  \"application/x-troff-me\":[\n    \"me\"\n  ],\n  \"application/x-troff-ms\":[\n    \"ms\"\n  ],\n  \"application/x-ustar\":[\n    \"ustar\"\n  ],\n  \"application/x-wais-source\":[\n    \"src\"\n  ],\n  \"application/xhtml+xml\":[\n    \"xhtml\",\n    \"xht\"\n  ],\n  \"application/zip\":[\n    \"zip\"\n  ],\n  \"audio/basic\":[\n    \"au\",\n    \"snd\"\n  ],\n  \"audio/midi\":[\n    \"mid\",\n    \"midi\",\n    \"kar\"\n  ],\n  \"audio/mpeg\":[\n    \"mpga\",\n    \"mp2\",\n    \"mp3\"\n  ],\n  \"audio/x-aiff\":[\n    \"aif\",\n    \"aiff\",\n    \"aifc\"\n  ],\n  \"audio/x-mpegurl\":[\n    \"m3u\"\n  ],\n  \"audio/x-pn-realaudio\":[\n    \"ram\",\n    \"rm\"\n  ],\n  \"audio/x-pn-realaudio-plugin\":[\n    \"rpm\"\n  ],\n  \"audio/x-realaudio\":[\n    \"ra\"\n  ],\n  \"audio/x-wav\":[\n    \"wav\"\n  ],\n  \"chemical/x-pdb\":[\n    \"pdb\"\n  ],\n  \"chemical/x-xyz\":[\n    \"xyz\"\n  ],\n  \"image/bmp\":[\n    \"bmp\"\n  ],\n  \"image/gif\":[\n    \"gif\"\n  ],\n  \"image/ief\":[\n    \"ief\"\n  ],\n  \"image/jpeg\":[\n    \"jpeg\",\n    \"jpg\",\n    \"jpe\"\n  ],\n  \"image/png\":[\n    \"png\"\n  ],\n  \"image/tiff\":[\n    \"tiff\",\n    \"tif\"\n  ],\n  \"image/vnd.djvu\":[\n    \"djvu\",\n    \"djv\"\n  ],\n  \"image/vnd.wap.wbmp\":[\n    \"wbmp\"\n  ],\n  \"image/x-cmu-raster\":[\n    \"ras\"\n  ],\n  \"image/x-portable-anymap\":[\n    \"pnm\"\n  ],\n  \"image/x-portable-bitmap\":[\n    \"pbm\"\n  ],\n  \"image/x-portable-graymap\":[\n    \"pgm\"\n  ],\n  \"image/x-portable-pixmap\":[\n    \"ppm\"\n  ],\n  \"image/x-rgb\":[\n    \"rgb\"\n  ],\n  \"image/x-xbitmap\":[\n    \"xbm\"\n  ],\n  \"image/x-xpixmap\":[\n    \"xpm\"\n  ],\n  \"image/x-xwindowdump\":[\n    \"xwd\"\n  ],\n  \"model/iges\":[\n    \"igs\",\n    \"iges\"\n  ],\n  \"model/mesh\":[\n    \"msh\",\n    \"mesh\",\n    \"silo\"\n  ],\n  \"model/vrml\":[\n    \"wrl\",\n    \"vrml\"\n  ],\n  \"text/css\":[\n    \"css\"\n  ],\n  \"text/html\":[\n    \"html\",\n    \"htm\",\n    \"nrg\"\n  ],\n  \"text/plain\":[\n    \"asc\",\n    \"txt\"\n  ],\n  \"text/richtext\":[\n    \"rtx\"\n  ],\n  \"text/rtf\":[\n    \"rtf\"\n  ],\n  \"text/sgml\":[\n    \"sgml\",\n    \"sgm\"\n  ],\n  \"text/tab-separated-values\":[\n    \"tsv\"\n  ],\n  \"text/vnd.wap.wml\":[\n    \"wml\"\n  ],\n  \"text/vnd.wap.wmlscript\":[\n    \"wmls\"\n  ],\n  \"text/x-setext\":[\n    \"etx\"\n  ],\n  \"text/xml\":[\n    \"xml\",\n    \"xsl\"\n  ],\n  \"video/mpeg\":[\n    \"mpeg\",\n    \"mpg\",\n    \"mpe\"\n  ],\n  \"video/quicktime\":[\n    \"qt\",\n    \"mov\"\n  ],\n  \"video/vnd.mpegurl\":[\n    \"mxu\"\n  ],\n  \"video/x-msvideo\":[\n    \"avi\"\n  ],\n  \"video/x-sgi-movie\":[\n    \"movie\"\n  ],\n  \"x-conference/x-cooltalk\":[\n    \"ice\"\n  ],\n  \"image/svg+xml\":[\n    \"svg\"\n  ]\n}\n",
+        "output": "json",
+        "x": 1150,
+        "y": 540,
+        "wires": [
+            [
+                "8c2b98b9.e0933"
+            ]
+        ]
+    },
+    {
+        "id": "ffbf61db.9e541",
+        "type": "change",
+        "z": "1c7dd13.e21a82f",
+        "name": "set flow.nrg defaults",
+        "rules": [
+            {
+                "t": "set",
+                "p": "nrg.siteRoot",
+                "pt": "flow",
+                "to": "payload",
+                "tot": "msg"
+            },
+            {
+                "t": "set",
+                "p": "nrg.urlPath",
+                "pt": "flow",
+                "to": "",
+                "tot": "str"
+            },
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "nrg",
+                "tot": "flow"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1180,
+        "y": 660,
+        "wires": [
+            [
+                "f2dfd1db.074e88"
+            ]
+        ]
+    },
+    {
+        "id": "f2dfd1db.074e88",
+        "type": "actionflows",
+        "z": "1c7dd13.e21a82f",
+        "info": "This action occurs after the NRG-Flows web server's default configuration settings\nhave been set. You can modify the `msg.payload` in this action flow by defining\na flow segment using the ActionFlows `action in/out` nodes. Changing the \n`msg.payload` contents in this action will update the settings stored in the\n`flow.nrg` context. \n\n## NRG Settings\nThe `msg.payload` object will contain the following properties that you can customize.\n\n* **siteRoot** - determines the document root folder to serve files from. The default is \"public_html\" under the current user folder. I.e. /Users/john/public_html\n* **urlPath** - determines the URL mount point where files will be appear under. The default is an empty string to serve files from the domain root. I.e. http://localhost. Set this value to begin serving under a subfolder. I.e. \"/subfolder\" will serve files under http://localhost/subfolder.\n* **mimeTypes** - determines the supported Content-Types that are set in the HTTP response header when a given file is requested. Content-Types are mapped by filename extension. This value contains an associative array.\n* **slash** - the platform directory separator \"/\" or \"\\\" (Windows) ",
+        "untilproptype": "num",
+        "proptype": "msg",
+        "name": "#config",
+        "prop": "loop",
+        "untilprop": 0,
+        "until": "gt",
+        "loop": "none",
+        "scope": "global",
+        "perf": false,
+        "seq": false,
+        "x": 1140,
+        "y": 720,
+        "wires": [
+            [
+                "baffd6e1.8ffa18"
+            ]
+        ]
+    },
+    {
+        "id": "baffd6e1.8ffa18",
+        "type": "change",
+        "z": "1c7dd13.e21a82f",
+        "name": "copy msg.payload to flow.nrg",
+        "rules": [
+            {
+                "t": "set",
+                "p": "nrg",
+                "pt": "flow",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1210,
+        "y": 780,
+        "wires": [
+            [
+                "5f293509.92402c"
+            ]
+        ]
+    },
+    {
+        "id": "ff802841.2d6848",
+        "type": "http in",
+        "z": "1c7dd13.e21a82f",
+        "name": "http",
+        "url": "*",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 70,
+        "y": 360,
+        "wires": [
+            [
+                "ece4e2c9.d656b8"
+            ]
+        ]
+    },
+    {
+        "id": "7a580a8c.3dbe9c",
+        "type": "change",
+        "z": "1c7dd13.e21a82f",
+        "name": "$HOME",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "echo $HOME",
+                "tot": "str"
+            },
+            {
+                "t": "set",
+                "p": "nrg.slash",
+                "pt": "flow",
+                "to": "/",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 920,
+        "y": 420,
+        "wires": [
+            [
+                "345eed66.713be2"
+            ]
+        ]
+    },
+    {
+        "id": "6bdf52f8.751e24",
+        "type": "actionflows_in",
+        "z": "1c7dd13.e21a82f",
+        "name": "#deployed",
+        "priority": "50",
+        "links": [],
+        "scope": "private",
+        "x": 920,
+        "y": 360,
+        "wires": [
+            [
+                "7a580a8c.3dbe9c"
+            ]
+        ]
+    },
+    {
+        "id": "5f293509.92402c",
+        "type": "actionflows_out",
+        "z": "1c7dd13.e21a82f",
+        "name": "#deployed",
+        "links": [],
+        "x": 1150,
+        "y": 840,
+        "wires": []
+    },
+    {
+        "id": "3e52efbd.95c7e8",
+        "type": "comment",
+        "z": "1c7dd13.e21a82f",
+        "name": "Serve files from siteRoot",
+        "info": "",
+        "x": 130,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "63bdf316.f381dc",
+        "type": "function",
+        "z": "1c7dd13.e21a82f",
+        "name": "resolver",
+        "func": "/*\n * Resolve the GET request to a filename and it's content type\n * msg.filename - the filename to be read and sent to client\n * msg.topic - the Content-Type to be sent in the header\n * msg.statusCode - set to default 200, OK\n * msg.headers - initialize headers to empty object {}\n */\n\n// Use string object in our function\nvar S = function(x) {\n  return msg.string.setValue(x);\n}\n\n// Check for invalid urlPath\nvar nrg = flow.get(\"nrg\");\nmsg.statusCode = 200;\nif (!msg.req.url.startsWith(nrg.urlPath)) {\n    msg.statusCode = 403;\n    node.send(msg);\n    return;\n}\n\n// Obtain filepath\nvar file = S(msg.req.url).delLeftMost(nrg.urlPath)\n           .prepend(nrg.siteRoot);\nvar ext = file.getRightMost(\"/\");\n\n// Missing file extension and last slash, 301 to folder/\nif (ext.indexOf(\".\") == -1 && file.substr(file.length -1) != \"/\") {\n    msg.statusCode = 301;\n    msg.headers = {\n        Location: \"http://\" + msg.req.headers.host + S(msg.req.url).ensureRight(\"/\").toString()\n    }\n    delete msg.payload;\n    node.send(msg);\n    return;\n}\n\n// Missing file extension, assume folder and \"/index.nrg\"\nif (ext.indexOf(\".\") == -1) {\n    ext = \"nrg\";\n    msg.req.url = S(msg.req.url).ensureRight(\"/\").toString();\n    file = file.ensureRight(\"/\").concat(\"index.nrg\");\n}else{\n    ext = ext.getRightMost(\".\").s;\n}\nmsg.filename = file.s;\n\n// Prevent forbidden extensions\nif (nrg.forbidden.indexOf(ext) != -1) {\n    msg.statusCode = 403;\n    node.send(msg);\n    return;\n}\n\n// Callback hell; find the file or try index.nrg, index.html, index.htm\nvar af = global.get(\"actionflows\");\nvar p = af.invoke(\"#getFile\", msg);\np.then(function(msg) {\n    if (typeof msg.error != \"undefined\") {\n        msg.statusCode = 404;\n        if (msg.filename.endsWith(\"index.nrg\")) {\n            \n            // Try index.html\n            var s = S(msg.filename);\n            msg.filename = s.delRightMost(\"index.nrg\").concat(\"index.html\").s;\n            delete msg.error;\n            p = af.invoke(\"#getFile\", msg);\n            p.then(function(msg) {\n                if (typeof msg.error != \"undefined\") {\n\n                    // Try index.htm\n                    var s = S(msg.filename);\n                    msg.filename = s.delRightMost(\"index.html\").concat(\"index.htm\").s;\n                    delete msg.error;\n                    p = af.invoke(\"#getFile\", msg);\n                    p.then(function(msg) {\n                        if (typeof msg.error != \"undefined\") {\n                            msg.statusCode = 404;\n                            node.send(msg);\n                        }else{\n                            msg.statusCode = 200;\n                            node.send(msg);\n                        }\n                    });\n                }else{\n                    msg.statusCode = 200;\n                    node.send(msg);\n                }\n            });\n        }else{\n            msg.statusCode = 200;\n            node.send(msg);\n        }\n    }else{\n        node.send(msg);\n    }\n});\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 80,
+        "y": 480,
+        "wires": [
+            [
+                "6901817a.9bba58"
+            ]
+        ]
+    },
+    {
+        "id": "ece4e2c9.d656b8",
+        "type": "string",
+        "z": "1c7dd13.e21a82f",
+        "name": "",
+        "methods": [],
+        "prop": "",
+        "propout": "string",
+        "object": "str",
+        "objectout": "msg",
+        "x": 70,
+        "y": 420,
+        "wires": [
+            [
+                "63bdf316.f381dc"
+            ]
+        ]
+    },
+    {
+        "id": "ed8b2bbc.dcb888",
+        "type": "http response",
+        "z": "1c7dd13.e21a82f",
+        "name": "http",
+        "statusCode": "",
+        "headers": {},
+        "x": 70,
+        "y": 660,
+        "wires": []
+    },
+    {
+        "id": "5dc12be3.5c853c",
+        "type": "actionflows_in",
+        "z": "1c7dd13.e21a82f",
+        "name": "#getFile",
+        "priority": "60",
+        "links": [],
+        "scope": "private",
+        "x": 70,
+        "y": 780,
+        "wires": [
+            [
+                "5891023.23e99fc"
+            ]
+        ]
+    },
+    {
+        "id": "74bbcb87.2f7d44",
+        "type": "actionflows_out",
+        "z": "1c7dd13.e21a82f",
+        "name": "#getFile",
+        "links": [],
+        "x": 260,
+        "y": 840,
+        "wires": []
+    },
+    {
+        "id": "5891023.23e99fc",
+        "type": "file in",
+        "z": "1c7dd13.e21a82f",
+        "name": "getFile",
+        "filename": "",
+        "format": "",
+        "chunk": false,
+        "sendError": false,
+        "x": 210,
+        "y": 780,
+        "wires": [
+            [
+                "74bbcb87.2f7d44"
+            ]
+        ]
+    },
+    {
+        "id": "95f78382.7ff588",
+        "type": "catch",
+        "z": "1c7dd13.e21a82f",
+        "name": "getFileError",
+        "scope": [
+            "5891023.23e99fc"
+        ],
+        "x": 90,
+        "y": 840,
+        "wires": [
+            [
+                "74bbcb87.2f7d44"
+            ]
+        ]
+    },
+    {
+        "id": "3fface03.177d82",
+        "type": "comment",
+        "z": "1c7dd13.e21a82f",
+        "name": "Find the file for resolver, includes, jss",
+        "info": "",
+        "x": 160,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "6901817a.9bba58",
+        "type": "function",
+        "z": "1c7dd13.e21a82f",
+        "name": "find nrg",
+        "func": "// Include nrg, actionflows\nvar af = global.get(\"actionflows\");\nvar nrg = flow.get(\"nrg\");\n\n// Use string object in our function\nvar S = function(x) {\n  return msg.string.setValue(x);\n};\n\n// Process redirect\nif (msg.statusCode == 301) {\n    node.send([msg, null]);\n    return;\n}\n\n// Get Content-Type by extension to mime-types\nvar ext = S(msg.filename).getRightMost(\".\").s;\nmsg.topic = \"text/html\";\nfor (var key in nrg.mimeTypes) {\n    if (nrg.mimeTypes[key].indexOf(ext) != -1) {\n        msg.topic = key;\n        break;\n    }\n}\n\n// Process error templates\nif (msg.statusCode != 200) {\n    var p = af.invoke(\"#\" + msg.statusCode + \"error\", msg);\n    p.then(function(msg) {\n        node.send([msg, null]);\n    });\n}else{\n\n    // Process .nrg files\n    if (ext == \"nrg\") {\n        node.send([null, msg]);\n    }else{\n        node.send([msg, null]);\n    }\n}\n",
+        "outputs": "2",
+        "noerr": 0,
+        "x": 80,
+        "y": 540,
+        "wires": [
+            [
+                "70671f89.06524"
+            ],
+            [
+                "dd0ae554.40098"
+            ]
+        ]
+    },
+    {
+        "id": "70671f89.06524",
+        "type": "change",
+        "z": "1c7dd13.e21a82f",
+        "name": "Content-Type",
+        "rules": [
+            {
+                "t": "set",
+                "p": "headers.Content-Type",
+                "pt": "msg",
+                "to": "topic",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 100,
+        "y": 600,
+        "wires": [
+            [
+                "ed8b2bbc.dcb888"
+            ]
+        ]
+    },
+    {
+        "id": "e245eed6.97a34",
+        "type": "actionflows_in",
+        "z": "1c7dd13.e21a82f",
+        "name": "#404error",
+        "priority": "49",
+        "links": [],
+        "scope": "private",
+        "x": 440,
+        "y": 660,
+        "wires": [
+            [
+                "9606e5d0.ed7b78"
+            ]
+        ]
+    },
+    {
+        "id": "b4c3db1c.9f899",
+        "type": "actionflows_out",
+        "z": "1c7dd13.e21a82f",
+        "name": "#404error",
+        "links": [],
+        "x": 720,
+        "y": 660,
+        "wires": []
+    },
+    {
+        "id": "9606e5d0.ed7b78",
+        "type": "template",
+        "z": "1c7dd13.e21a82f",
+        "name": "Template",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "404 Not Found <span>{{req.url}}</span>",
+        "output": "str",
+        "x": 580,
+        "y": 660,
+        "wires": [
+            [
+                "b4c3db1c.9f899"
+            ]
+        ]
+    },
+    {
+        "id": "c046c095.c9c188",
+        "type": "actionflows_in",
+        "z": "1c7dd13.e21a82f",
+        "name": "#403error",
+        "priority": "49",
+        "links": [],
+        "scope": "private",
+        "x": 440,
+        "y": 600,
+        "wires": [
+            [
+                "91b7ef83.62102"
+            ]
+        ]
+    },
+    {
+        "id": "91b7ef83.62102",
+        "type": "template",
+        "z": "1c7dd13.e21a82f",
+        "name": "Template",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "403 Forbidden <span>{{req.url}}</span>\n",
+        "output": "str",
+        "x": 580,
+        "y": 600,
+        "wires": [
+            [
+                "269ad86a.b7e088"
+            ]
+        ]
+    },
+    {
+        "id": "269ad86a.b7e088",
+        "type": "actionflows_out",
+        "z": "1c7dd13.e21a82f",
+        "name": "#403error",
+        "links": [],
+        "x": 720,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "51d1d0a1.ac5f",
+        "type": "comment",
+        "z": "1c7dd13.e21a82f",
+        "name": "Default error pages",
+        "info": "",
+        "x": 470,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "f6cd35da.d28558",
+        "type": "function",
+        "z": "1c7dd13.e21a82f",
+        "name": "nrgFlows",
+        "func": "// Use string object in our function\nvar S = function(x) {\n  return msg.string.setValue(x);\n}\n\n// Parse out HTML comments\nnrgtag = [];\nmsg.payload = S(msg.payload);\nwhile (msg.payload.indexOf('<nrg_') > -1) {\n    msg.payload = msg.payload.delLeftMost('<nrg_');\n    var action = msg.payload.getLeftMost('>').getLeftMost(' ').toString();\n    var selfclosing = (msg.payload.getLeftMost('>').indexOf('selfclosing') > -1)\n    if (selfclosing) {\n        msg.payload = msg.payload.delLeftMost('/>');\n    }else{\n        msg.payload = msg.payload.delLeftMost('</nrg_' + action + '>');\n    }\n    nrgtag.push({\"action\": action, \"selfclosing\": selfclosing});\n}\nmsg.payload = \"\";\n\n// Invoke nrgFlows\nmsg.outputBuffer = \"\";\nvar af = global.get(\"actionflows\");\nvar nrg = flow.get(\"nrg\");\nfunction nrgFlows() {\n    if (nrgtag.length == 0) {\n        msg.outputBuffer += msg.payload + msg.pre;\n        msg.payload = msg.outputBuffer.substr(5, msg.outputBuffer.length - 11);\n        delete msg.outputBuffer;\n        delete msg.pre;\n        node.send(msg);\n        return;\n    }\n    var n = nrgtag.shift();\n    msg.outputBuffer += msg.pre.getLeftMost(\"<nrg_\" + n.action);\n    msg.pre = msg.pre.delLeftMost(\"<nrg_\" + n.action);\n\n    if (n.selfclosing) {\n        msg.pre = msg.pre.delLeftMost(\"/>\");\n    }else{\n        // Obtain block for payload\n        msg.pre = msg.pre.delLeftMost(\">\");\n        n.payload = msg.pre.getLeftMost(\"</nrg_\" + n.action + \">\").s;\n        msg.pre = msg.pre.delLeftMost(\"</nrg_\" + n.action + \">\");\n    }\n    msg = Object.assign(msg, n);\n    delete msg.action;\n    if (n.action == \"script\") {\n        n.action = \"#\" + n.action;\n        delete msg.filename;\n        if (n.selfclosing) {\n            var file = S(n.payload).replaceAll(\"/\", nrg.slash).replaceAll(\"\\\\\", nrg.slash);\n            if (file.left(1) != nrg.slash) {\n                file = file.prepend(nrg.siteRoot + nrg.slash).s;\n            }\n            msg.filename = file;\n            msg.evalScript = \"\";\n            msg.payload = \"\";\n        }else{\n            msg.evalScript = n.payload;\n            msg.payload = \"\";\n        }\n    }\n    var p = af.invoke(n.action, msg);\n    p.then(function(msg) {\n        // Report any errors\n        if (msg.statusCode != 200) {\n            var p = af.invoke(\"#\" + msg.statusCode + \"error\", msg);\n            p.then(function(msg) {\n                node.send(msg);\n            });\n            return;\n        }\n        if (nrgtag.length > 0) {\n            msg.outputBuffer += msg.payload;\n            nrgFlows();\n        }else{\n            msg.outputBuffer += msg.payload + msg.pre;\n            msg.payload = msg.outputBuffer.substr(5, msg.outputBuffer.length - 11);\n            delete msg.outputBuffer;\n            delete msg.pre;\n            node.send(msg);\n        }\n    });\n}\nnrgFlows();\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 660,
+        "y": 360,
+        "wires": [
+            [
+                "19741bb1.c18b34"
+            ]
+        ]
+    },
+    {
+        "id": "5f05a253.51a69c",
+        "type": "comment",
+        "z": "1c7dd13.e21a82f",
+        "name": "Process .nrg files",
+        "info": "",
+        "x": 460,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "904211b0.e9b0d",
+        "type": "http response",
+        "z": "1c7dd13.e21a82f",
+        "name": "http",
+        "statusCode": "",
+        "headers": {},
+        "x": 650,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "19741bb1.c18b34",
+        "type": "change",
+        "z": "1c7dd13.e21a82f",
+        "name": "Content-Type",
+        "rules": [
+            {
+                "t": "set",
+                "p": "headers.Content-Type",
+                "pt": "msg",
+                "to": "topic",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 680,
+        "y": 420,
+        "wires": [
+            [
+                "904211b0.e9b0d"
+            ]
+        ]
+    },
+    {
+        "id": "dca7c5ad.e2f7",
+        "type": "actionflows_in",
+        "z": "1c7dd13.e21a82f",
+        "name": "#500error",
+        "priority": "49",
+        "links": [],
+        "scope": "private",
+        "x": 440,
+        "y": 720,
+        "wires": [
+            [
+                "f1d944c.25155b8"
+            ]
+        ]
+    },
+    {
+        "id": "9d710231.ef9fb",
+        "type": "actionflows_out",
+        "z": "1c7dd13.e21a82f",
+        "name": "#500error",
+        "links": [],
+        "x": 720,
+        "y": 720,
+        "wires": []
+    },
+    {
+        "id": "f1d944c.25155b8",
+        "type": "template",
+        "z": "1c7dd13.e21a82f",
+        "name": "Template",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "500 Internal Error <span>{{error.message}}</span>",
+        "output": "str",
+        "x": 580,
+        "y": 720,
+        "wires": [
+            [
+                "9d710231.ef9fb"
+            ]
+        ]
+    },
+    {
+        "id": "8c2b98b9.e0933",
+        "type": "template",
+        "z": "1c7dd13.e21a82f",
+        "name": "forbidden",
+        "field": "nrg.forbidden",
+        "fieldType": "flow",
+        "format": "json",
+        "syntax": "plain",
+        "template": "[\"flow\",\"jss\"]",
+        "output": "json",
+        "x": 1140,
+        "y": 600,
+        "wires": [
+            [
+                "ffbf61db.9e541"
+            ]
+        ]
+    },
+    {
+        "id": "c8a94d8f.7e2be",
+        "type": "comment",
+        "z": "1c7dd13.e21a82f",
+        "name": "Reserved names for nrgFlows / directives",
+        "info": "",
+        "x": 180,
+        "y": 920,
+        "wires": []
+    },
+    {
+        "id": "50e96c58.da658c",
+        "type": "actionflows_in",
+        "z": "1c7dd13.e21a82f",
+        "name": "#prefix",
+        "priority": "50",
+        "links": [],
+        "scope": "private",
+        "x": 70,
+        "y": 1080,
+        "wires": [
+            [
+                "4f590d9d.c1f2fc"
+            ]
+        ]
+    },
+    {
+        "id": "4f590d9d.c1f2fc",
+        "type": "actionflows_out",
+        "z": "1c7dd13.e21a82f",
+        "name": "#prefix",
+        "links": [],
+        "x": 230,
+        "y": 1080,
+        "wires": []
+    },
+    {
+        "id": "70ffe0f7.b9ac3",
+        "type": "actionflows_in",
+        "z": "1c7dd13.e21a82f",
+        "name": "#require",
+        "priority": "50",
+        "links": [],
+        "scope": "private",
+        "x": 80,
+        "y": 1020,
+        "wires": [
+            [
+                "f04ed729.a556c8"
+            ]
+        ]
+    },
+    {
+        "id": "f04ed729.a556c8",
+        "type": "actionflows_out",
+        "z": "1c7dd13.e21a82f",
+        "name": "#require",
+        "links": [],
+        "x": 240,
+        "y": 1020,
+        "wires": []
+    },
+    {
+        "id": "671b0739.a69888",
+        "type": "actionflows_in",
+        "z": "1c7dd13.e21a82f",
+        "name": "#script",
+        "priority": "50",
+        "links": [],
+        "scope": "private",
+        "x": 70,
+        "y": 1140,
+        "wires": [
+            [
+                "7dae405.55afb4"
+            ]
+        ]
+    },
+    {
+        "id": "88cac383.034ee8",
+        "type": "actionflows_out",
+        "z": "1c7dd13.e21a82f",
+        "name": "#script",
+        "links": [],
+        "x": 510,
+        "y": 1140,
+        "wires": []
+    },
+    {
+        "id": "86d0a916.83ec58",
+        "type": "actionflows_in",
+        "z": "1c7dd13.e21a82f",
+        "name": "#include",
+        "priority": "1",
+        "links": [],
+        "scope": "private",
+        "x": 80,
+        "y": 960,
+        "wires": [
+            [
+                "8075e171.885cf"
+            ]
+        ]
+    },
+    {
+        "id": "3ee1f108.4e2b46",
+        "type": "actionflows_out",
+        "z": "1c7dd13.e21a82f",
+        "name": "#include",
+        "links": [],
+        "x": 520,
+        "y": 960,
+        "wires": []
+    },
+    {
+        "id": "dd0ae554.40098",
+        "type": "string",
+        "z": "1c7dd13.e21a82f",
+        "name": "nrgWrap",
+        "methods": [
+            {
+                "name": "wrapHTML",
+                "params": [
+                    {
+                        "type": "str",
+                        "value": "nrg"
+                    },
+                    {
+                        "type": "json",
+                        "value": ""
+                    }
+                ]
+            }
+        ],
+        "prop": "payload",
+        "propout": "payload",
+        "object": "msg",
+        "objectout": "msg",
+        "x": 440,
+        "y": 360,
+        "wires": [
+            [
+                "fda46b32.88bcb8"
+            ]
+        ]
+    },
+    {
+        "id": "8075e171.885cf",
+        "type": "function",
+        "z": "1c7dd13.e21a82f",
+        "name": "formatXML",
+        "func": "// Preprocess nrg files, convert short format syntax to\n// XML compatible with attributes\n\n// Use string object in our function\nvar S = function(x) {\n  return msg.string.setValue(x);\n};\n\nvar chunks = S(msg.payload).replaceAll(\"<#\", \"<nrg_\").replaceAll(\"</#\", \"</nrg_\").splitLeft(\"<nrg_\", -1);\nvar result = \"\";\nif (typeof msg.includes == \"undefined\") {\n    msg.includes = {};\n}\nwhile(chunks.length > 0) {\n    var chunk = S(chunks.shift());\n    // TODO: replace dirty hack; match brackets ignoring quoted string\n    var tag = chunk.getLeftMost(String.fromCharCode(10))\n        .replaceAll('\">\"', '~|~').getLeftMost(\">\").append(\">\")\n        .replaceAll('~|~', '\">\"'); // This overcomes until=\">\" scenario\n    chunk = chunk.delLeftMost(tag);\n    // Identify self-closing\n    if (tag.right(2) == \"/>\" && tag.indexOf(\"selfclosing\") == -1) {\n        tag = S(tag.slice(0, -2).trim() + \" selfclosing=\\\"true\\\" />\");\n    }\n    \n    // Expand short format\n    if (tag.indexOf(\"(\") != -1 && tag.indexOf(\");\") != -1) {\n        var before = tag.getLeftMost(\"(\");\n        var value = tag.delLeftMost(\"(\").getLeftMost(\");\");\n        if (value.length !== 0) {\n            value = value.ensureLeft('\"').ensureRight('\"');\n        }else{\n            value = '\"\"';\n        }\n        var after = tag.delLeftMost(\");\");\n        tag = before + \" payload=\" + value + after;\n    }\n    if (tag.indexOf(\"include \") != -1) {\n        var file = S(tag).delLeftMost('payload=\"').getLeftMost('\"');\n        if (typeof msg.includes[file] == \"undefined\") {\n            msg.includes[file] = null;\n        }\n    }\n    chunk = tag + chunk;\n    result = result + chunk;\n    if (chunks.length > 0) {\n         result += \"<nrg_\";\n    }else{\n        msg.payload = result;\n        node.send(msg);\n    }    \n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 230,
+        "y": 960,
+        "wires": [
+            [
+                "d14f00a4.3e9ff"
+            ]
+        ]
+    },
+    {
+        "id": "fa23fa7c.8b89b8",
+        "type": "actionflows",
+        "z": "1c7dd13.e21a82f",
+        "info": "Process all includes recursively, \nreturning the entire document.",
+        "untilproptype": "bool",
+        "proptype": "msg",
+        "name": "#include",
+        "prop": "loop",
+        "untilprop": "false",
+        "until": "eq",
+        "loop": "watch",
+        "scope": "private",
+        "perf": false,
+        "seq": false,
+        "x": 440,
+        "y": 480,
+        "wires": [
+            [
+                "f6cd35da.d28558"
+            ]
+        ]
+    },
+    {
+        "id": "d14f00a4.3e9ff",
+        "type": "function",
+        "z": "1c7dd13.e21a82f",
+        "name": "includes",
+        "func": "// check that includes are obtained\n// check if includes is in payload, if so, replace it with code and \n// set msg.loop = true else false\n\n// Use string object in our function\nvar S = function(x) {\n  return msg.string.setValue(x);\n};\nvar af = global.get(\"actionflows\");\nvar nrg = flow.get(\"nrg\");\n\n// Read all include files\nvar preads = [];\nfor (var key in msg.includes) {\n    if (msg.includes[key] === null) {\n        var file = S(key).replaceAll(\"/\", nrg.slash).replaceAll(\"\\\\\", nrg.slash);\n        if (file.left(1) != nrg.slash && file.charAt(2) != \":\") {\n            file = file.prepend(nrg.siteRoot + nrg.slash).s;\n        }\n        var m = { filename: file, payload: \"\" };\n        preads.push(af.invoke(\"#getFile\", m).then(function(m) {\n            if (typeof m.error == \"undefined\") {\n                msg.includes[key] = String(m.payload);\n            }else{\n                msg.error = m.error;\n                node.error(msg.error.message);\n                msg.statusCode = 500;\n            }\n        }));\n    }\n}\n\n// Swap out all includes\nPromise.all(preads).then(function() {\n    var result = S(msg.payload);\n    for (var key in msg.includes) {\n        var tag = '<nrg_include payload=\"' + key + '\" selfclosing=\"true\" />';\n        result = result.replaceAll(tag, msg.includes[key]);\n    }\n    msg.payload = result.s;\n    \n    if (msg.payload.indexOf(\"<#include\") == -1) {\n        msg.pre = S(msg.payload); // preload looks too much like payload\n        msg.loop = false;\n    }else{\n        msg.loop = true;\n    }\n    node.send(msg);\n});\n",
+        "outputs": "1",
+        "noerr": 0,
+        "x": 380,
+        "y": 960,
+        "wires": [
+            [
+                "3ee1f108.4e2b46"
+            ]
+        ]
+    },
+    {
+        "id": "fda46b32.88bcb8",
+        "type": "change",
+        "z": "1c7dd13.e21a82f",
+        "name": "initLoop",
+        "rules": [
+            {
+                "t": "set",
+                "p": "loop",
+                "pt": "msg",
+                "to": "true",
+                "tot": "bool"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 440,
+        "y": 420,
+        "wires": [
+            [
+                "fa23fa7c.8b89b8"
+            ]
+        ]
+    },
+    {
+        "id": "7dae405.55afb4",
+        "type": "function",
+        "z": "1c7dd13.e21a82f",
+        "name": "evalScript",
+        "func": "// Execute inline script block\nif (typeof msg.filename == \"undefined\") {\n    return eval(\"(function(){\" + msg.evalScript + \"})();\");\n\n// Obtain JavaScript server-side (.jss)\n}else{\n    var af = global.get(\"actionflows\");\n    var p = af.invoke(\"#getFile\", msg);\n    p.then(function(msg) {\n        if (typeof msg.error == \"undefined\") {\n            msg.evalScript = msg.payload;\n            msg.payload = \"\";\n            var result = eval(\"(function(){\" + msg.evalScript + \"})();\");\n            if (typeof result != \"undefined\") {\n                node.send(result);\n            }\n        }else{\n            node.error(msg.error.message);\n            msg.statusCode = 500;\n            node.send(msg);\n        }\n    });\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 280,
+        "y": 1140,
+        "wires": [
+            [
+                "88cac383.034ee8"
+            ]
+        ]
+    },
+    {
+        "id": "b3ecee78.47c6f8",
+        "type": "comment",
+        "z": "1c7dd13.e21a82f",
+        "name": "NRG version 0.0.1, © 2018 Stephen J. Carnam",
+        "info": "",
+        "x": 200,
+        "y": 280,
         "wires": []
     }
 ]
