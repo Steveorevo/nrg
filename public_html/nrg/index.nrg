@@ -56,6 +56,7 @@
 		node.warn("jumps over the lazy dog");
 		return msg;
 	  </#script>
+	  <#script("example.jss"); />
     </main>
 
     <footer class="footer">
